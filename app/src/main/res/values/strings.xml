@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Chess</string>
+
+    <string-array name="level">
+        <item>Level 1</item>
+        <item>Level 2</item>
+        <item>Level 3</item>
+        <item>Level 4</item>
+    </string-array>
+
+    <string-array name="AI">
+        <item>None</item>
+        <item>White</item>
+        <item>Black</item>
+    </string-array>
+</resources>
