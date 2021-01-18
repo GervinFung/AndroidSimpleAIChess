@@ -50,7 +50,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private RecyclerView moveHistory, whiteCapturedPiece, blackCapturedPiece;
     private MoveLog moveLog;
     private final ArtificialIntelligence artificialIntelligence;
-    private Spinner AILevelSpinner, whoIsAISpinner;
+    private Spinner AILevelSpinner;
     private boolean AIThinking;
 
     @RequiresApi(api = Build.VERSION_CODES.R)
@@ -128,8 +128,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         GameButton.initGameButton(this);
 
         this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        final Spinner whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
+        whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
                 if ((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
@@ -142,7 +142,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             }
 
             @Override
-            public void onNothingSelected(final AdapterView<?> parent) {}
+            public void onNothingSelected(final AdapterView<?> parent) {
+                if (MainActivity.this.AIThinking = true) {
+                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                }
+            }
         });
     }
 
@@ -340,6 +344,29 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void restart(final Board board) {
+
+        //Reinitialise spinner
+        this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
+        final Spinner whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
+        whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
+                if ((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
+                        || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack())) {
+                    MainActivity.this.AIThinking = true;
+                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                } else {
+                    MainActivity.this.AIThinking = false;
+                }
+            }
+
+            @Override
+            public void onNothingSelected(final AdapterView<?> parent) {
+                if (MainActivity.this.AIThinking = true) {
+                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                }
+            }
+        });
 
         this.updateBoard(board);
         //Clear move history

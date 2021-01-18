@@ -101,7 +101,6 @@ public final class Board {
         return Collections.unmodifiableList(activePieces);
     }
 
-
     public Tile getTile(final int tileCoordinate) {
         return gameBoard.get(tileCoordinate);
     }
