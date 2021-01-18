@@ -51,7 +51,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private MoveLog moveLog;
     private final ArtificialIntelligence artificialIntelligence;
     private Spinner AILevelSpinner;
-    private boolean AIThinking;
+    private boolean AIThinking, gameEnded;
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     public void updateBoard(final Board chessBoard) {
@@ -76,6 +76,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.legalMovesDarkTileColor = Color.rgb(105, 105, 105);
         this.artificialIntelligence = new ArtificialIntelligence(this);
         this.AIThinking = false;
+        this.gameEnded = false;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.R)
@@ -91,11 +92,41 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             this.whiteCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, League.WHITE));
             this.blackCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, League.BLACK));
             this.moveHistory.setAdapter(new MoveHistory(this.moveLog));
+            this.gameEnded = mainActivity.gameEnded;
+            this.AIThinking = mainActivity.AIThinking;
+            System.out.println(this.AIThinking);
         } else {
             this.updateBoard(Board.createStandardBoard());
         }
     }
 
+    private void displayEndGameMessage() {
+        if (this.chessBoard.currentPlayer().isInCheckmate()) {
+            this.gameEnded = true;
+            new AlertDialog.Builder(this)
+                    .setTitle("Checkmate")
+                    .setMessage(this.chessBoard.currentPlayer().getLeague().toString() + " is in Checkmate!")
+                    .setPositiveButton(android.R.string.yes, (dialog, which) -> this.showEndGameNavigationMessage())
+                    .show();
+        }
+        else if (this.chessBoard.currentPlayer().isInStalemate()) {
+            this.gameEnded = true;
+            this.showEndGameNavigationMessage();
+            new AlertDialog.Builder(this)
+                    .setTitle("Stalemate")
+                    .setMessage(this.chessBoard.currentPlayer().getLeague().toString() + " is in stalemate")
+                    .setPositiveButton(android.R.string.yes, (dialog, which) -> this.showEndGameNavigationMessage())
+                    .show();
+        }
+    }
+
+    private void showEndGameNavigationMessage() {
+        new AlertDialog.Builder(this)
+                .setTitle("Game Over")
+                .setMessage("1. New Game to start a new game\n2. Exit Game to exit this game")
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> {})
+                .show();
+    }
 
     @Override
     public void onBackPressed() {
@@ -132,21 +163,19 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
-                if ((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
-                    || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack())) {
+                if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
                     MainActivity.this.AIThinking = true;
-                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                    if (((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
+                            || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack()))) {
+                        MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                    }
                 } else {
                     MainActivity.this.AIThinking = false;
                 }
             }
 
             @Override
-            public void onNothingSelected(final AdapterView<?> parent) {
-                if (MainActivity.this.AIThinking = true) {
-                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
-                }
-            }
+            public void onNothingSelected(final AdapterView<?> parent) {}
         });
     }
 
@@ -161,6 +190,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             }
         }
         this.moveHistory.setAdapter(new MoveHistory(this.moveLog));
+        this.displayEndGameMessage();
     }
 
     private final static class ArtificialIntelligence {
@@ -344,28 +374,26 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void restart(final Board board) {
-
+        this.gameEnded = false;
         //Reinitialise spinner
         this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
         final Spinner whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
         whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
-                if ((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
-                        || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack())) {
+                if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
                     MainActivity.this.AIThinking = true;
-                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                    if (((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
+                            || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack()))) {
+                        MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
+                    }
                 } else {
                     MainActivity.this.AIThinking = false;
                 }
             }
 
             @Override
-            public void onNothingSelected(final AdapterView<?> parent) {
-                if (MainActivity.this.AIThinking = true) {
-                    MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
-                }
-            }
+            public void onNothingSelected(final AdapterView<?> parent) {}
         });
 
         this.updateBoard(board);
@@ -458,13 +486,13 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private int initTileView(final int index, final View view) {
         view.setOnClickListener(V-> {
             try {
-                if (this.humanMovePiece == null) {
+                if (this.humanMovePiece == null && !this.gameEnded) {
                     this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
                     if (this.humanMovePiece.getLeague() != this.chessBoard.currentPlayer().getLeague()) {
                         this.humanMovePiece = null;
                     }
                     this.highlightMove(this.chessBoard);
-                } else {
+                } else if (this.humanMovePiece != null && !this.gameEnded){
                     final Move move = MoveFactory.createMove(this.chessBoard, this.humanMovePiece, this.humanMovePiece.getPiecePosition(), index);
                     final MoveTransition transition = this.chessBoard.currentPlayer().makeMove(move);
                     if (transition.getMoveStatus().isDone()) {
@@ -474,7 +502,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                         }
                         this.moveLog.addMove(move);
                         this.updateUI(move);
-                        if (this.AIThinking) {
+                        if (this.AIThinking && !this.gameEnded) {
                             this.artificialIntelligence.execute(this.AILevelSpinner.getSelectedItemPosition());
                         }
                     }
