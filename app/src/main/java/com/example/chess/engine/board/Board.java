@@ -10,12 +10,14 @@ import com.example.chess.engine.player.BlackPlayer;
 import com.example.chess.engine.player.Player;
 import com.example.chess.engine.player.WhitePlayer;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.example.chess.engine.board.Move.MoveFactory;
 
 public final class Board {
 
@@ -29,11 +31,13 @@ public final class Board {
     private final Pawn enPassantPawn;
     private final int moveCount;
 
+    private final Move transitionMove;
+
     @RequiresApi(api = Build.VERSION_CODES.R)
     private Board(final Builder builder) {
         this.gameBoard = createGameBoard(builder);
-        this.whitePieces = calculateActivePieces(this.gameBoard, League.WHITE);
-        this.blackPieces = calculateActivePieces(this.gameBoard, League.BLACK);
+        this.whitePieces = calculateActivePieces(builder, League.WHITE);
+        this.blackPieces = calculateActivePieces(builder, League.BLACK);
 
         this.enPassantPawn = builder.enPassantPawn;
         final Collection<Move> whiteStandardLegalMoves = this.calculateLegalMoves(this.whitePieces);
@@ -45,9 +49,12 @@ public final class Board {
         this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
 
         this.moveCount = builder.moveCount();
+        this.transitionMove = builder.transitionMove != null ? builder.transitionMove : MoveFactory.getNullMove();
     }
 
     public int getMoveCount() { return this.moveCount; }
+
+    public Move getTransitionMove() { return this.transitionMove; }
 
     public Player currentPlayer() {
         return this.currentPlayer;
@@ -67,39 +74,18 @@ public final class Board {
 
     public Collection<Piece> getBlackPieces() { return this.blackPieces; }
 
-    public Collection<Piece> getAllPieces() {
-        final List <Piece> allPieces = new ArrayList<>(this.whitePieces);
-        allPieces.addAll(this.blackPieces);
-        return Collections.unmodifiableList(allPieces);
-    }
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public Collection<Piece> getAllPieces() { return Collections.unmodifiableList(Stream.concat(this.whitePieces.stream(), this.blackPieces.stream()).collect(Collectors.toList())); }
 
     public Pawn getEnPassantPawn() {
         return this.enPassantPawn;
     }
 
-    private Collection<Move> calculateLegalMoves(final Collection<Piece> pieces) {
-        final List<Move> legalMoves = new ArrayList<>();
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private Collection<Move> calculateLegalMoves(final Collection<Piece> pieces) { return Collections.unmodifiableList(pieces.stream().flatMap(piece -> piece.calculateLegalMoves(this).stream()).collect(Collectors.toList())); }
 
-        for (final Piece piece: pieces) {
-            legalMoves.addAll(piece.calculateLegalMoves(this));
-        }
-        return Collections.unmodifiableList(legalMoves);
-    }
-
-    private static Collection<Piece> calculateActivePieces(final List<Tile> gameBoard, final League league) {
-
-        final List<Piece> activePieces = new ArrayList<>();
-
-        for (final Tile tile: gameBoard) {
-            if (tile.isTileOccupied()) {
-                final Piece piece = tile.getPiece();
-                if (piece.getLeague() == league) {
-                    activePieces.add(piece);
-                }
-            }
-        }
-        return Collections.unmodifiableList(activePieces);
-    }
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private static Collection<Piece> calculateActivePieces(final Builder builder, final League league) { return Collections.unmodifiableList(builder.boardConfig.values().stream().filter(piece -> piece.getLeague() == league).collect(Collectors.toList())); }
 
     public Tile getTile(final int tileCoordinate) {
         return gameBoard.get(tileCoordinate);
@@ -156,9 +142,11 @@ public final class Board {
         private final League nextMoveMaker;
         private final Pawn enPassantPawn;
         private final int moveCount;
+        private Move transitionMove;
 
         public Builder(final int moveCount, final League nextMoveMaker, final Pawn enPassantPawn) {
-            this.boardConfig = new HashMap<>();
+            //set initialCapacity to 32 and loadFactor to 1 to reduce chance of hash collision
+            this.boardConfig = new HashMap<>(32, 1);
             this.moveCount = moveCount;
             this.nextMoveMaker = nextMoveMaker;
             this.enPassantPawn = enPassantPawn;
@@ -171,6 +159,8 @@ public final class Board {
 
         @RequiresApi(api = Build.VERSION_CODES.R)
         public Board build() { return new Board(this); }
+
+        public void setTransitionMove(final Move transitionMove) { this.transitionMove = transitionMove; }
 
         public int moveCount() { return this.moveCount; }
     }

@@ -3,7 +3,7 @@ package com.example.chess.engine.pieces;
 import com.example.chess.engine.League;
 import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.Move;
-import com.example.chess.engine.player.MoveTransition;
+import com.example.chess.engine.board.MoveTransition;
 
 import java.util.Collection;
 import java.util.Objects;

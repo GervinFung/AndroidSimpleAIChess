@@ -29,4 +29,10 @@ No. | Features
 7.| Show captured piece
 8.| Undo previous move
 9.| Multithread to enhance improve AI thinking time
-10.| Playable on both potrait and landscape mode
+10.| Playable on both portrait and landscape mode
+11.| Auto flip board when it needs to
+
+![portrait sample](portrait.png)
+![landscape sample](landscape.png)
+
+

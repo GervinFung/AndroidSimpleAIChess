@@ -6,6 +6,8 @@ import com.example.chess.engine.board.Move;
 import com.example.chess.engine.board.Tile;
 import com.example.chess.engine.pieces.King;
 import com.example.chess.engine.pieces.Piece;
+import com.example.chess.engine.board.MoveTransition;
+import com.example.chess.engine.board.MoveStatus;
 
 import java.util.Collection;
 import java.util.Collections;

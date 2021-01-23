@@ -13,7 +13,6 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -29,7 +28,7 @@ import com.example.chess.engine.board.BoardUtils;
 import com.example.chess.engine.board.Move;
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.player.ArtificialIntelligence.MiniMax;
-import com.example.chess.engine.player.MoveTransition;
+import com.example.chess.engine.board.MoveTransition;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -56,7 +55,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     @RequiresApi(api = Build.VERSION_CODES.R)
     public void updateBoard(final Board chessBoard) {
         this.chessBoard = chessBoard;
-        this.drawBoard();
+        if (chessBoard.currentPlayer().getLeague().isBlack()) {
+            this.inverseBoard();
+        } else {
+            this.drawBoard();
+        }
     }
 
     @Override
@@ -167,6 +170,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                     MainActivity.this.AIThinking = true;
                     if (((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
                             || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack()))) {
+                        if (parent.getSelectedItemPosition() == 1) {
+                            MainActivity.this.drawBoard();
+                        } else if (parent.getSelectedItemPosition() == 2) {
+                            MainActivity.this.inverseBoard();
+                        }
                         MainActivity.this.artificialIntelligence.execute(MainActivity.this.AILevelSpinner.getSelectedItemPosition());
                     }
                 } else {
@@ -201,21 +209,29 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
         @RequiresApi(api = Build.VERSION_CODES.R)
         //did not use Async task due to deprecation in API >= 30
+        //UI will freeze while AI is thinking
         private void execute(final int level) {
-            final MiniMax miniMax = new MiniMax(level + 1);
-            final Handler handler = new Handler();
+            /*
+            final android.os.Handler handler = new android.os.Handler();
             new Thread() {
                 @Override
                 public void run() {
                     handler.post(() -> {
-                            final Move bestMove = miniMax.execute(ArtificialIntelligence.this.mainActivity.getChessBoard());
-                            ArtificialIntelligence.this.mainActivity.updateBoard(bestMove.execute());
-                            ArtificialIntelligence.this.mainActivity.moveLog.addMove(bestMove);
-                            ArtificialIntelligence.this.mainActivity.updateUI(bestMove);
-                        }
+                                final Move bestMove = new MiniMax(level + 1).execute(ArtificialIntelligence.this.mainActivity.getChessBoard());
+                                ArtificialIntelligence.this.mainActivity.updateBoard(bestMove.execute());
+                                ArtificialIntelligence.this.mainActivity.moveLog.addMove(bestMove);
+                                ArtificialIntelligence.this.mainActivity.updateUI(bestMove);
+                            }
                     );
                 }
             }.start();
+             */
+            de.esoco.coroutine.CoroutineScope.launch(scope -> {
+                final Move bestMove = new MiniMax(level + 1).execute(ArtificialIntelligence.this.mainActivity.getChessBoard());
+                ArtificialIntelligence.this.mainActivity.updateBoard(bestMove.execute());
+                ArtificialIntelligence.this.mainActivity.moveLog.addMove(bestMove);
+                ArtificialIntelligence.this.mainActivity.updateUI(bestMove);
+            });
         }
     }
 
@@ -351,11 +367,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             final Button button = mainActivity.findViewById(R.id.saveGameButton);
             button.setOnClickListener(V->
                     new AlertDialog.Builder(mainActivity)
-                    .setTitle("Save Game")
-                    .setMessage("Request confirmation to save game")
-                    .setPositiveButton(android.R.string.yes, (dialog, which) -> FenUtilities.writeFENToFile(mainActivity))
-                    .setNegativeButton(android.R.string.no, (dialog, which) -> {})
-                    .show());
+                            .setTitle("Save Game")
+                            .setMessage("Request confirmation to save game")
+                            .setPositiveButton(android.R.string.yes, (dialog, which) -> FenUtilities.writeFENToFile(mainActivity))
+                            .setNegativeButton(android.R.string.no, (dialog, which) -> {})
+                            .show());
         }
 
         //load game button
@@ -364,11 +380,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             final Button button = mainActivity.findViewById(R.id.resumeGameButton);
             button.setOnClickListener(V->
                     new AlertDialog.Builder(mainActivity)
-                    .setTitle("Load Game")
-                    .setMessage("Request confirmation to load saved game")
-                    .setPositiveButton(android.R.string.yes, (dialog, which) -> mainActivity.restart(FenUtilities.createGameFromFEN(mainActivity)))
-                    .setNegativeButton(android.R.string.no, (dialog, which) -> {})
-                    .show());
+                            .setTitle("Load Game")
+                            .setMessage("Request confirmation to load saved game")
+                            .setPositiveButton(android.R.string.yes, (dialog, which) -> mainActivity.restart(FenUtilities.createGameFromFEN(mainActivity)))
+                            .setNegativeButton(android.R.string.no, (dialog, which) -> {})
+                            .show());
         }
     }
 
@@ -441,8 +457,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void drawTile(final int index) {
-        int tileColor;
-        if (BoardUtils.FIRST_ROW[index] || BoardUtils.THIRD_ROW[index] || BoardUtils.FIFTH_ROW[index] || BoardUtils.SEVENTH_ROW[index]) {
+        final int tileColor;
+        if (BoardUtils.FIRST_ROW.get(index) || BoardUtils.THIRD_ROW.get(index) || BoardUtils.FIFTH_ROW.get(index) || BoardUtils.SEVENTH_ROW.get(index)) {
             tileColor = (index % 2 == 0 ? Color.rgb(255, 255, 255) : Color.rgb(29 ,61 ,99));
         } else {
             tileColor = (index % 2 != 0 ? Color.rgb(255, 255, 255) : Color.rgb(29 ,61 ,99));
@@ -462,22 +478,20 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void highlightMove(final Board board) {
-        int tileColor;
         for (final Move move : this.pieceLegalMoves(board)) {
             final int coordinate = move.getDestinationCoordinate();
             if (move.isAttack() || move instanceof PawnPromotion && ((PawnPromotion)move).getDecoratedMove().isAttack()) {
                 //dark red
                 this.tilesView[coordinate].setBackgroundColor(Color.rgb(204, 0, 0));
             } else {
-                if (BoardUtils.FIRST_ROW[coordinate] ||
-                        BoardUtils.THIRD_ROW[coordinate] ||
-                        BoardUtils.FIFTH_ROW[coordinate] ||
-                        BoardUtils.SEVENTH_ROW[coordinate]) {
-                    tileColor = (coordinate % 2 == 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor);
+                if (BoardUtils.FIRST_ROW.get(coordinate) ||
+                        BoardUtils.THIRD_ROW.get(coordinate) ||
+                        BoardUtils.FIFTH_ROW.get(coordinate) ||
+                        BoardUtils.SEVENTH_ROW.get(coordinate)) {
+                    this.tilesView[coordinate].setBackgroundColor((coordinate % 2 == 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor));
                 } else {
-                    tileColor = (coordinate % 2 != 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor);
+                    this.tilesView[coordinate].setBackgroundColor((coordinate % 2 != 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor));
                 }
-                this.tilesView[coordinate].setBackgroundColor(tileColor);
             }
         }
     }
@@ -507,18 +521,108 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                         }
                     }
                     this.humanMovePiece = null;
-                    this.drawBoard();
+                    if (!this.AIThinking) {
+                        if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+                            this.inverseBoard();
+                        } else {
+                            this.drawBoard();
+                        }
+                    } else {
+                        if (this.AILevelSpinner.getSelectedItemPosition() == 1) {
+                            this.drawBoard();
+                        } else if (this.AILevelSpinner.getSelectedItemPosition() == 2){
+                            this.inverseBoard();
+                        }
+                    }
                 }
             } catch (final NullPointerException ignored) {}
         });
         this.tilesView[index] = (ImageView)view;
         this.drawTile(index);
+        if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+            return index - 1;
+        }
         return index + 1;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void drawBoard() {
         int index = this.initTileView(0, this.findViewById(R.id.view00));
+        index = this.initTileView(index, this.findViewById(R.id.view01));
+        index = this.initTileView(index, this.findViewById(R.id.view02));
+        index = this.initTileView(index, this.findViewById(R.id.view03));
+        index = this.initTileView(index, this.findViewById(R.id.view04));
+        index = this.initTileView(index, this.findViewById(R.id.view05));
+        index = this.initTileView(index, this.findViewById(R.id.view06));
+        index = this.initTileView(index, this.findViewById(R.id.view07));
+
+        index = this.initTileView(index, this.findViewById(R.id.view08));
+        index = this.initTileView(index, this.findViewById(R.id.view09));
+        index = this.initTileView(index, this.findViewById(R.id.view10));
+        index = this.initTileView(index, this.findViewById(R.id.view11));
+        index = this.initTileView(index, this.findViewById(R.id.view12));
+        index = this.initTileView(index, this.findViewById(R.id.view13));
+        index = this.initTileView(index, this.findViewById(R.id.view14));
+        index = this.initTileView(index, this.findViewById(R.id.view15));
+
+        index = this.initTileView(index, this.findViewById(R.id.view16));
+        index = this.initTileView(index, this.findViewById(R.id.view17));
+        index = this.initTileView(index, this.findViewById(R.id.view18));
+        index = this.initTileView(index, this.findViewById(R.id.view19));
+        index = this.initTileView(index, this.findViewById(R.id.view20));
+        index = this.initTileView(index, this.findViewById(R.id.view21));
+        index = this.initTileView(index, this.findViewById(R.id.view22));
+        index = this.initTileView(index, this.findViewById(R.id.view23));
+
+        index = this.initTileView(index, this.findViewById(R.id.view24));
+        index = this.initTileView(index, this.findViewById(R.id.view25));
+        index = this.initTileView(index, this.findViewById(R.id.view26));
+        index = this.initTileView(index, this.findViewById(R.id.view27));
+        index = this.initTileView(index, this.findViewById(R.id.view28));
+        index = this.initTileView(index, this.findViewById(R.id.view29));
+        index = this.initTileView(index, this.findViewById(R.id.view30));
+        index = this.initTileView(index, this.findViewById(R.id.view31));
+
+        index = this.initTileView(index, this.findViewById(R.id.view32));
+        index = this.initTileView(index, this.findViewById(R.id.view33));
+        index = this.initTileView(index, this.findViewById(R.id.view34));
+        index = this.initTileView(index, this.findViewById(R.id.view35));
+        index = this.initTileView(index, this.findViewById(R.id.view36));
+        index = this.initTileView(index, this.findViewById(R.id.view37));
+        index = this.initTileView(index, this.findViewById(R.id.view38));
+        index = this.initTileView(index, this.findViewById(R.id.view39));
+
+        index = this.initTileView(index, this.findViewById(R.id.view40));
+        index = this.initTileView(index, this.findViewById(R.id.view41));
+        index = this.initTileView(index, this.findViewById(R.id.view42));
+        index = this.initTileView(index, this.findViewById(R.id.view43));
+        index = this.initTileView(index, this.findViewById(R.id.view44));
+        index = this.initTileView(index, this.findViewById(R.id.view45));
+        index = this.initTileView(index, this.findViewById(R.id.view46));
+        index = this.initTileView(index, this.findViewById(R.id.view47));
+
+        index = this.initTileView(index, this.findViewById(R.id.view48));
+        index = this.initTileView(index, this.findViewById(R.id.view49));
+        index = this.initTileView(index, this.findViewById(R.id.view50));
+        index = this.initTileView(index, this.findViewById(R.id.view51));
+        index = this.initTileView(index, this.findViewById(R.id.view52));
+        index = this.initTileView(index, this.findViewById(R.id.view53));
+        index = this.initTileView(index, this.findViewById(R.id.view54));
+        index = this.initTileView(index, this.findViewById(R.id.view55));
+
+        index = this.initTileView(index, this.findViewById(R.id.view56));
+        index = this.initTileView(index, this.findViewById(R.id.view57));
+        index = this.initTileView(index, this.findViewById(R.id.view58));
+        index = this.initTileView(index, this.findViewById(R.id.view59));
+        index = this.initTileView(index, this.findViewById(R.id.view60));
+        index = this.initTileView(index, this.findViewById(R.id.view61));
+        index = this.initTileView(index, this.findViewById(R.id.view62));
+        this.initTileView(index, this.findViewById(R.id.view63));
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    private void inverseBoard() {
+        int index = this.initTileView(63, this.findViewById(R.id.view00));
         index = this.initTileView(index, this.findViewById(R.id.view01));
         index = this.initTileView(index, this.findViewById(R.id.view02));
         index = this.initTileView(index, this.findViewById(R.id.view03));

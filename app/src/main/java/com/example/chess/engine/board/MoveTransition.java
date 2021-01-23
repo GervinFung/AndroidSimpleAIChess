@@ -1,6 +1,4 @@
-package com.example.chess.engine.player;
-
-import com.example.chess.engine.board.Board;
+package com.example.chess.engine.board;
 
 public final class MoveTransition {
 
