@@ -9,7 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import static com.example.chess.MainActivity.MoveLog;
+import com.example.chess.engine.board.MoveLog;
 
 public final class MoveHistory extends RecyclerView.Adapter<MoveHistory.ViewHolder>{
 

@@ -130,8 +130,8 @@ public final class BoardUtils {
         }
         return Collections.unmodifiableList(moveHistory);
     }
-
+    @RequiresApi(api = Build.VERSION_CODES.R)
     public static boolean kingThreat(final Move move) { return move.getBoard().currentPlayer().makeMove(move).getLatestBoard().currentPlayer().isInCheck(); }
-
+    @RequiresApi(api = Build.VERSION_CODES.R)
     public static boolean isEndGameScenario(final Board board) { return board.currentPlayer().isInCheckmate() || board.currentPlayer().isInStalemate(); }
 }

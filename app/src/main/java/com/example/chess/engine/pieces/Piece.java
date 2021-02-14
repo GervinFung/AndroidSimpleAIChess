@@ -5,12 +5,14 @@ import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.Move;
 import com.example.chess.engine.board.MoveTransition;
 
+import java.io.Serializable;
 import java.util.Collection;
-import java.util.Objects;
 
 import static com.example.chess.engine.board.Move.*;
 
-public abstract class Piece {
+public abstract class Piece implements Serializable {
+
+    private final static long serialVersionUID = 4L;
 
     protected final PieceType pieceType;
     protected final int piecePosition;
@@ -26,7 +28,13 @@ public abstract class Piece {
 
     //prior to JDK 7, a manual hashCode is needed
     @Override
-    public int hashCode() { return Objects.hash(pieceType.hashCode(), piecePosition, league.hashCode(), isFirstMove); }
+    public int hashCode() {
+        int result = this.pieceType.hashCode();
+        result = 31 * result + this.league.hashCode();
+        result = 31 * result + this.piecePosition;
+        result = 31 * result + (this.isFirstMove ? 1 : 0);
+        return result;
+    }
 
     @Override
     public boolean equals(final Object object) {

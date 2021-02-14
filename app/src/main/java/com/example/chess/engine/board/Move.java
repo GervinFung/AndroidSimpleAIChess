@@ -6,6 +6,7 @@ import android.os.Build;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.example.chess.MainActivity;
@@ -14,12 +15,14 @@ import com.example.chess.engine.pieces.Pawn;
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.pieces.Rook;
 
+import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 
 import static com.example.chess.engine.board.Board.*;
 
-public abstract class Move {
+public abstract class Move implements Serializable {
+
+    private final static long serialVersionUID = 2L;
 
     protected final Board board;
     protected final Piece movePiece;
@@ -40,7 +43,14 @@ public abstract class Move {
         this.isFirstMove = false;
     }
     @Override
-    public int hashCode() { return Objects.hash(this.destinationCoordinate, this.movePiece.hashCode(), this.movePiece.getPiecePosition()); }
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + this.destinationCoordinate;
+        result = 31 * result + this.movePiece.hashCode();
+        result = 31 * result + this.movePiece.getPiecePosition();
+        result = result + (isFirstMove ? 1 : 0);
+        return result;
+    }
 
     @Override
     public boolean equals(final Object object) {
@@ -96,13 +106,6 @@ public abstract class Move {
         return builder.build();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
-    public Board undo() {
-        final Builder builder = new Builder(this.board.getMoveCount() - 1, this.board.currentPlayer().getLeague(), null);
-        this.board.getAllPieces().forEach(builder::setPiece);
-        return builder.build();
-    }
-
     public static final class MajorMove extends Move {
 
         public MajorMove(final Board board, final Piece movePiece, final int destinationCoordinate) {
@@ -127,7 +130,7 @@ public abstract class Move {
         }
 
         @Override
-        public int hashCode() { return Objects.hash(this.attackedPiece.hashCode(), super.hashCode()); }
+        public int hashCode() { return this.attackedPiece.hashCode() + super.hashCode(); }
 
         @Override
         public boolean equals(final Object object) {
@@ -178,6 +181,7 @@ public abstract class Move {
 
         @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
+        @NonNull
         public String toString() { return BoardUtils.getPositionAtCoordinate(this.destinationCoordinate); }
     }
 
@@ -192,10 +196,8 @@ public abstract class Move {
 
         @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
-        public String toString() {
-            return BoardUtils.getPositionAtCoordinate(this.movePiece.getPiecePosition()).charAt(0) + "x" +
-                    BoardUtils.getPositionAtCoordinate(this.destinationCoordinate);
-        }
+        @NonNull
+        public String toString() { return BoardUtils.getPositionAtCoordinate(this.movePiece.getPiecePosition()).charAt(0) + "x" + BoardUtils.getPositionAtCoordinate(this.destinationCoordinate); }
     }
 
     public static final class PawnEnPassantAttackMove extends PawnAttackMove {
@@ -221,14 +223,7 @@ public abstract class Move {
             return builder.build();
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
-        @Override
-        public Board undo() {
-            final Board.Builder builder = new Builder(this.board.getMoveCount() - 1, this.board.currentPlayer().getLeague(), (Pawn)this.getAttackedPiece());
-            this.board.getAllPieces().forEach(builder::setPiece);
-            return builder.build();
-        }
-
+        @NonNull
         @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public String toString() {
@@ -297,7 +292,7 @@ public abstract class Move {
 
         @RequiresApi(api = Build.VERSION_CODES.R)
         private void getImageViewOfPromotePiece(final Piece promotedPiece, final Dialog dialog, final int iconsResource, final int resource) {
-            final ImageView pieceImageView = (ImageView)dialog.findViewById(resource);
+            final ImageView pieceImageView = dialog.findViewById(resource);
             pieceImageView.setImageResource(iconsResource);
             pieceImageView.setOnClickListener(V->{
                 this.promotedPiece = promotedPiece;
@@ -341,7 +336,7 @@ public abstract class Move {
         public String toString() { return BoardUtils.getPositionAtCoordinate(destinationCoordinate) + "=" +this.promotedPiece.toString().charAt(0); }
 
         @Override
-        public int hashCode() { return Objects.hash(decoratedMove.hashCode(), 31 * promotedPawn.hashCode()); }
+        public int hashCode() { return this.decoratedMove.hashCode() + (31 * this.promotedPawn.hashCode()); }
 
         @Override
         public boolean equals(final Object object) { return this == object || object instanceof PawnPromotion && (super.equals(object)); }
@@ -370,6 +365,7 @@ public abstract class Move {
 
         @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
+        @NonNull
         public String toString() { return BoardUtils.getPositionAtCoordinate(destinationCoordinate); }
     }
 
@@ -417,7 +413,13 @@ public abstract class Move {
         }
 
         @Override
-        public int hashCode() { return Objects.hash(super.hashCode(), this.castleRook.hashCode(), this.castleRookDestination); }
+        public int hashCode() {
+            final int prime = 31;
+            int result = super.hashCode();
+            result = prime * result + this.castleRook.hashCode();
+            result = prime * result + this.castleRookDestination;
+            return result;
+        }
 
         @Override
         public boolean equals(final Object object) {

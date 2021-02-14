@@ -1,20 +1,26 @@
 package com.example.chess.engine.player;
 
+import android.os.Build;
+
+import androidx.annotation.RequiresApi;
+
 import com.example.chess.engine.League;
 import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.Move;
-import com.example.chess.engine.board.Tile;
 import com.example.chess.engine.pieces.King;
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.board.MoveTransition;
 import com.example.chess.engine.board.MoveStatus;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 
-public abstract class Player {
+public abstract class Player  implements Serializable {
+
+    private final static long serialVersionUID = 5L;
 
     protected final Board board;
     protected final King playerKing;
@@ -25,20 +31,17 @@ public abstract class Player {
         this.board = board;
         this.playerKing = establishKing();
         final List<Move> legal = new ArrayList<>(legalMoves);
-        assert this.playerKing != null;
         this.isInCheck = !Player.calculateAttacksOnTile(this.playerKing.getPiecePosition(), opponentLegalMoves).isEmpty();
         //for ai
         legal.addAll(calculateKingCastles(opponentLegalMoves));
         this.legalMoves = legal;
     }
 
-    public King getPlayerKing() {
+    public final King getPlayerKing() {
         return this.playerKing;
     }
 
-    public Collection<Move> getLegalMoves() {
-        return Collections.unmodifiableCollection(this.legalMoves);
-    }
+    public final Collection<Move> getLegalMoves() { return Collections.unmodifiableCollection(this.legalMoves); }
 
     public static List<Move> calculateAttacksOnTile(final int piecePosition, final Collection<Move> moves) {
         final List<Move> attackMove = new ArrayList<>();
@@ -58,7 +61,6 @@ public abstract class Player {
             }
         }
         throw new RuntimeException("Invalid board");
-        //return null;
     }
 
     public abstract Collection<Piece> getActivePieces();
@@ -67,41 +69,26 @@ public abstract class Player {
 
     public abstract Player getOpponent();
 
-    public boolean isInCheck() {
+    public final boolean isInCheck() {
         return this.isInCheck;
     }
-
-    public boolean isInCheckmate() {
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    public final boolean isInCheckmate() {
         return this.isInCheck && noEscapeMoves();
     }
-
-    public boolean isInStalemate() {
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    public final boolean isInStalemate() {
         return !this.isInCheck && noEscapeMoves();
     }
 
     protected abstract Collection<Move> calculateKingCastles(final Collection<Move> opponentLegals);
 
-    public boolean isCastled() {
+    public final boolean isCastled() {
         return this.playerKing.isCastled();
     }
 
-    public boolean isKingSideCastleCapable() {
-        final Tile rookTile = board.getTile(this.getLeague().isWhite() ? 63 : 7);
-        if (!rookTile.isTileOccupied() || this.playerKing.isCastled()) {
-            return false;
-        }
-        return rookTile.getPiece().isFirstMove();
-    }
-
-    public boolean isQueenSideCastleCapable() {
-        final Tile rookTile = board.getTile(this.getLeague().isWhite() ? 56 : 0);
-        if (!rookTile.isTileOccupied() || this.playerKing.isCastled()) {
-            return false;
-        }
-        return rookTile.getPiece().isFirstMove();
-    }
-
-    protected boolean noEscapeMoves() {
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    protected final boolean noEscapeMoves() {
 
         for (final Move move : this.legalMoves) {
             final MoveTransition transition = makeMove(move);
@@ -113,7 +100,8 @@ public abstract class Player {
         return true;
     }
 
-    public MoveTransition makeMove(final Move move) {
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    public final MoveTransition makeMove(final Move move) {
 
         final Board transitionBoard = move.execute();
         if (transitionBoard != null) {
@@ -129,5 +117,6 @@ public abstract class Player {
         return new MoveTransition(null, null, MoveStatus.Illegal_Move);
     }
 
-    public MoveTransition undoMove(final Move move) { return new MoveTransition(this.board, move.undo(), MoveStatus.DONE); }
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    public final MoveTransition undoMove(final Move move) { return new MoveTransition(this.board, move.getBoard(), MoveStatus.DONE); }
 }

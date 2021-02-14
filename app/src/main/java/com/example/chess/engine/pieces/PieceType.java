@@ -1,5 +1,7 @@
 package com.example.chess.engine.pieces;
 
+import androidx.annotation.NonNull;
+
 public enum PieceType {
     PAWN("P", 100) {
         @Override
@@ -79,6 +81,7 @@ public enum PieceType {
     }
 
     @Override
+    @NonNull
     public String toString() {
         return this.pieceName;
     }

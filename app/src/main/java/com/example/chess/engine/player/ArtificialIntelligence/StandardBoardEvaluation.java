@@ -5,8 +5,11 @@ import android.os.Build;
 import androidx.annotation.RequiresApi;
 
 import com.example.chess.engine.board.Board;
+import com.example.chess.engine.board.Move;
 import com.example.chess.engine.pieces.Piece;
+import com.example.chess.engine.pieces.PieceType;
 import com.example.chess.engine.player.Player;
+import com.google.common.collect.Lists;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,10 +18,15 @@ import java.util.stream.Collectors;
 
 public final class StandardBoardEvaluation {
 
-    private static final int CHECK_KING = 50;
+    private static final int CHECK_KING = 45;
     private static final int CHECK_MATE = 10000;
     private static final int DEPTH_BONUS = 100;
-    private static final int CASTLE_BONUS = 60;
+    private static final int CASTLE_BONUS = 25;
+
+    private final static int MOBILITY_MULTIPLIER = 5;
+    private final static int ATTACK_MULTIPLIER = 1;
+    private final static int TWO_BISHOPS_BONUS = 25;
+    private final static PawnStructureAnalyzer pawnStructureScore = new PawnStructureAnalyzer();
 
     private static final int[] kingEvaluation = {
             -30,-40,-40,-50,-50,-40,-40,-30,
@@ -44,7 +52,7 @@ public final class StandardBoardEvaluation {
 
     private static final int[] rookEvaluation = {
             0,  0,  0,  0,  0,  0,  0,  0,
-            5, 10, 10, 10, 10, 10, 10,  5,
+            5, 20, 20, 20, 20, 20, 20,  5,
             -5,  0,  0,  0,  0,  0,  0, -5,
             -5,  0,  0,  0,  0,  0,  0, -5,
             -5,  0,  0,  0,  0,  0,  0, -5,
@@ -77,9 +85,9 @@ public final class StandardBoardEvaluation {
 
     private static final int[] pawnEvaluation = {
             0,  0,  0,  0,  0,  0,  0,  0,
-            50, 50, 50, 50, 50, 50, 50, 50,
-            10, 10, 20, 30, 30, 20, 10, 10,
-            5,  5, 10, 25, 25, 10,  5,  5,
+            75, 75, 75, 75, 75, 75, 75, 75,
+            25, 25, 29, 29, 29, 29, 25, 25,
+            5,  5, 10, 55, 55, 10,  5,  5,
             0,  0,  0, 20, 20,  0,  0,  0,
             5, -5,-10,  0,  0,-10, -5,  5,
             5, 10, 10,-20,-20, 10, 10,  5,
@@ -93,16 +101,54 @@ public final class StandardBoardEvaluation {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private static int scorePlayer(final Player player, final int depth) {
-        return pieceValue(player) + mobility(player) +
-                check(player) + checkMate(player, depth) +
-                castled(player) + positionEvaluation(player);
+        return mobility(player) +
+                checkMate(player, depth) +
+                attacks(player) +
+                castled(player) +
+                pieceEvaluations(player) +
+                pawnStructure(player);
+    }
+
+    private static int attacks(final Player player) {
+        int attackScore = 0;
+        for(final Move move : player.getLegalMoves()) {
+            if(move.isAttack()) {
+                final Piece movedPiece = move.getMovedPiece();
+                final Piece attackedPiece = move.getAttackedPiece();
+                if(movedPiece.getPieceValue() <= attackedPiece.getPieceValue()) {
+                    attackScore++;
+                }
+            }
+        }
+        return attackScore * ATTACK_MULTIPLIER;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private static int pieceEvaluations(final Player player) {
+        int pieceValuationScore = 0;
+        int numBishops = 0;
+        for (final Piece piece : player.getActivePieces()) {
+            pieceValuationScore += piece.getPieceValue() + positionValue(piece).get(piece.getPiecePosition());
+            if(piece.getPieceType() == PieceType.BISHOP) {
+                numBishops++;
+            }
+        }
+        return pieceValuationScore + (numBishops == 2 ? TWO_BISHOPS_BONUS : 0);
+    }
+
+    private static int mobility(final Player player) {
+        return MOBILITY_MULTIPLIER * mobilityRatio(player);
+    }
+
+    private static int mobilityRatio(final Player player) {
+        return (int)((player.getLegalMoves().size() * 10.0f) / player.getOpponent().getLegalMoves().size());
     }
 
     private static int castled(final Player player) {
         return player.isCastled() ? CASTLE_BONUS : 0;
     }
 
-    private static int checkMate(final Player player, final int depth) { return player.getOpponent().isInCheckmate() ? CHECK_MATE * depthBonus(depth) : 0; }
+    private static int checkMate(final Player player, final int depth) { return player.getOpponent().isInCheckmate() ? CHECK_MATE * depthBonus(depth) : check(player); }
 
     private static int depthBonus(final int depth) {
         return depth == 0 ? 1 : DEPTH_BONUS * depth;
@@ -112,27 +158,8 @@ public final class StandardBoardEvaluation {
         return player.getOpponent().isInCheck() ? CHECK_KING : 0;
     }
 
-    private static int mobility(final Player player) {
-        return player.getLegalMoves().size();
-    }
-
-    private static int pieceValue(final Player player) {
-        int pieceValueScore = 0;
-        for (final Piece piece : player.getActivePieces()) {
-            pieceValueScore += piece.getPieceValue();
-        }
-        return pieceValueScore;
-    }
-
     @RequiresApi(api = Build.VERSION_CODES.N)
-    private static int positionEvaluation(final Player player) {
-        int piecePositionScore = 0;
-        for (final Piece piece : player.getActivePieces()) {
-            final int position = piece.getPiecePosition();
-            piecePositionScore += positionValue(piece).get(position);
-        }
-        return piecePositionScore;
-    }
+    private static int pawnStructure(final Player player) { return pawnStructureScore.pawnStructureScore(player); }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private static List<Integer> positionValue(final Piece piece) {
@@ -156,13 +183,6 @@ public final class StandardBoardEvaluation {
         if (isWhite) {
             return Collections.unmodifiableList(Arrays.stream(positionValue).boxed().collect(Collectors.toList()));
         }
-        return reversePositionEvaluation(positionValue);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private static List<Integer> reversePositionEvaluation(final int[] positionValue) {
-        final List<Integer> piecePositionValue = Arrays.stream(positionValue).boxed().collect(Collectors.toList());
-        Collections.reverse(piecePositionValue);
-        return Collections.unmodifiableList(piecePositionValue);
+        return Collections.unmodifiableList(Lists.reverse(Arrays.stream(positionValue).boxed().collect(Collectors.toList())));
     }
 }

@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.chess.engine.board.BoardUtils;
 import com.example.chess.engine.board.Move;
+import com.example.chess.engine.board.MoveLog;
 import com.example.chess.engine.pieces.Piece;
 
 import java.util.Comparator;
@@ -21,10 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.example.chess.MainActivity.MoveLog;
 import com.example.chess.engine.League;
 
-public class CapturedPiece extends RecyclerView.Adapter<CapturedPiece.ViewHolder>{
+public final class CapturedPiece extends RecyclerView.Adapter<CapturedPiece.ViewHolder>{
     private final List<Piece> takenPieces;
     private final HashMap<Piece, Integer> takenPiecesMap;
 

@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.example.chess.engine.board.BoardUtils.mostValuableVictimLeastValuableAggressor;
 
-public class MiniMax {
+public final class MiniMax {
 
     private final StandardBoardEvaluation evaluator;
     private final int searchDepth, nThreads;
@@ -127,10 +127,7 @@ public class MiniMax {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
-    private int max(final Board board,
-                    final int depth,
-                    final int highest,
-                    final int lowest) {
+    private int max(final Board board, final int depth, final int highest, final int lowest) {
         if (depth == 0 || BoardUtils.isEndGameScenario(board)) {
             return this.evaluator.evaluate(board, depth);
         }
@@ -150,10 +147,7 @@ public class MiniMax {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
-    private int min(final Board board,
-                    final int depth,
-                    final int highest,
-                    final int lowest) {
+    private int min(final Board board, final int depth, final int highest, final int lowest) {
         if (depth == 0 || BoardUtils.isEndGameScenario(board)) {
             return this.evaluator.evaluate(board, depth);
         }
@@ -172,8 +166,7 @@ public class MiniMax {
         return currentLowest;
     }
 
-    private int calculateQuiescenceDepth(final Board toBoard,
-                                         final int depth) {
+    private int calculateQuiescenceDepth(final Board toBoard, final int depth) {
         if(depth == 1 && this.quiescenceCount < MAX_QUIESCENCE) {
             int activityMeasure = 0;
             if (toBoard.currentPlayer().isInCheck()) {
