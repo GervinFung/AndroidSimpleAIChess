@@ -28,9 +28,9 @@ No. | Features
 6.| Choose AI level from 1 to 4
 7.| Show captured piece
 8.| Undo previous move
-9.| Multithread to enhance improve AI thinking time
+9.| Multithreaded to enhance improve AI thinking time
 10.| Playable on both portrait and landscape mode
-11.| Auto flip board when it needs to
+11.| Auto flip board when it's other player's turn
 
 ![portrait sample](portrait.png)
 ![landscape sample](landscape.png)

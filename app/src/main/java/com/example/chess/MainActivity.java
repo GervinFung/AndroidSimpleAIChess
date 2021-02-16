@@ -50,6 +50,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private RecyclerView moveHistory, whiteCapturedPiece, blackCapturedPiece;
     private MoveLog moveLog;
     private Spinner AILevelSpinner;
+    private Spinner whoIsAISpinner;
     private boolean AIThinking, gameEnded;
 
     @RequiresApi(api = Build.VERSION_CODES.R)
@@ -159,11 +160,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.whiteCapturedPiece = new CapturedPieceRecyclerViewBuilder(this, R.id.whiteCapturedPiece).build();
         this.blackCapturedPiece = new CapturedPieceRecyclerViewBuilder(this, R.id.blackCapturePieces).build();
 
-        GameButton.initGameButton(this);
+        new GameButton(this);
 
         this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        final Spinner whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
+        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
                 if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
@@ -268,19 +269,17 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     private final static class GameButton {
 
-        private GameButton() { throw new RuntimeException("Cannot instantiate GameButton"); }
-
         @RequiresApi(api = Build.VERSION_CODES.R)
-        private static void initGameButton(final MainActivity mainActivity) {
-            initStartButton(mainActivity);
-            initUndoButton(mainActivity);
-            initExitButton(mainActivity);
-            initSaveGameButton(mainActivity);
-            initLoadGameButton(mainActivity);
+        private GameButton(final MainActivity mainActivity) {
+            this.initStartButton(mainActivity);
+            this.initUndoButton(mainActivity);
+            this.initExitButton(mainActivity);
+            this.initSaveGameButton(mainActivity);
+            this.initLoadGameButton(mainActivity);
         }
 
         @RequiresApi(api = Build.VERSION_CODES.R)
-        private static void initStartButton(final MainActivity mainActivity) {
+        private void initStartButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.newGameButton);
             button.setOnClickListener(V-> {
                 if (mainActivity.moveLog.size() != 0) {
@@ -302,7 +301,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
         //undo move button
         @RequiresApi(api = Build.VERSION_CODES.R)
-        private static void initUndoButton(final MainActivity mainActivity) {
+        private void initUndoButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.undoMoveButton);
             button.setOnClickListener(V-> {
                 if (mainActivity.moveLog.size() != 0) {
@@ -323,14 +322,14 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
         //exit game button
         @RequiresApi(api = Build.VERSION_CODES.R)
-        private static void initExitButton(final MainActivity mainActivity) {
+        private void initExitButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.exitGameButton);
             button.setOnClickListener(V-> mainActivity.onBackPressed());
         }
 
         //save game button
         @RequiresApi(api = Build.VERSION_CODES.R)
-        private static void initSaveGameButton(final MainActivity mainActivity) {
+        private void initSaveGameButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.saveGameButton);
             button.setOnClickListener(V->
                     new AlertDialog.Builder(mainActivity)
@@ -346,7 +345,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
         //load game button
         @RequiresApi(api = Build.VERSION_CODES.R)
-        private static void initLoadGameButton(final MainActivity mainActivity) {
+        private void initLoadGameButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.resumeGameButton);
             button.setOnClickListener(V->
                     new AlertDialog.Builder(mainActivity)
@@ -366,8 +365,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.gameEnded = false;
         //Reinitialise spinner
         this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        final Spinner whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
+        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
                 if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
@@ -408,8 +407,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.gameEnded = false;
         //Reinitialise spinner
         this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        final Spinner whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
+        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
                 if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
@@ -486,12 +485,14 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void runAI() {
         final Handler handler = new Handler();
-        new Thread(() -> handler.post(() -> {
-            final Move bestMove = new MiniMax(this.AILevelSpinner.getSelectedItemPosition() + 1).execute(this.getChessBoard());
-            this.updateBoard(bestMove.execute());
-            this.moveLog.addMove(bestMove);
-            this.updateUI(bestMove);
-        })).start();
+        new Thread(() -> {
+            final Move bestMove = new MiniMax(MainActivity.this.AILevelSpinner.getSelectedItemPosition() + 1).execute(MainActivity.this.getChessBoard());
+            handler.post(() -> {
+                MainActivity.this.updateBoard(bestMove.execute());
+                MainActivity.this.moveLog.addMove(bestMove);
+                MainActivity.this.updateUI(bestMove);
+            });
+        }).start();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.R)
@@ -517,21 +518,21 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                         if (this.AIThinking && !this.gameEnded) {
                             this.runAI();
                         }
+                        if (!this.AIThinking) {
+                            if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+                                this.inverseBoard();
+                            } else {
+                                this.drawBoard();
+                            }
+                        } else {
+                            if (this.whoIsAISpinner.getSelectedItemPosition() == 1) {
+                                this.drawBoard();
+                            } else if (this.whoIsAISpinner.getSelectedItemPosition() == 2){
+                                this.inverseBoard();
+                            }
+                        }
                     }
                     this.humanMovePiece = null;
-                    if (!this.AIThinking) {
-                        if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
-                            this.inverseBoard();
-                        } else {
-                            this.drawBoard();
-                        }
-                    } else {
-                        if (this.AILevelSpinner.getSelectedItemPosition() == 1) {
-                            this.drawBoard();
-                        } else if (this.AILevelSpinner.getSelectedItemPosition() == 2){
-                            this.inverseBoard();
-                        }
-                    }
                 }
             } catch (final NullPointerException ignored) {}
         });
