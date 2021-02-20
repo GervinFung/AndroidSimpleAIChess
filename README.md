@@ -1,4 +1,4 @@
-A simple 2 player chess AI that implemented minimax & alpha-beta pruning
+A simple 2 player chess AI that implemented minimax & alpha-beta pruning & pawn structure analysis & move ordering to fully optimise alpha-beta pruning
 
 ## Folder Structure
 
@@ -35,5 +35,3 @@ No. | Features
 
 ![portrait sample](portrait.png)
 ![landscape sample](landscape.png)
-
-

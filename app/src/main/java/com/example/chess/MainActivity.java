@@ -526,21 +526,26 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                                 this.inverseBoard();
                             }
                         }
-                    } else if (getPiece(this.humanMovePiece, index) != null) {
-                        if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
-                            this.inverseBoard();
+                    } else {
+                        final Piece tempPiece = getPiece(this.humanMovePiece, index);
+
+                        if (tempPiece != null) {
+                            if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+                                this.inverseBoard();
+                            } else {
+                                this.drawBoard();
+                            }
+                            this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
+                            this.highlightMove(this.chessBoard);
                         } else {
-                            this.drawBoard();
+                            this.humanMovePiece = null;
+                            System.out.println("XXXX");
+                            if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+                                this.inverseBoard();
+                            } else {
+                                this.drawBoard();
+                            }
                         }
-                        this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
-                        this.highlightMove(this.chessBoard);
-                    }
-                } else {
-                    this.humanMovePiece = null;
-                    if (this.whoIsAISpinner.getSelectedItemPosition() == 1) {
-                        this.drawBoard();
-                    } else if (this.whoIsAISpinner.getSelectedItemPosition() == 2){
-                        this.inverseBoard();
                     }
                 }
             } catch (final NullPointerException ignored) {}
@@ -555,7 +560,10 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     private Piece getPiece(final Piece humanPiece, final int index) {
         final Piece piece = this.chessBoard.getTile(index).getPiece();
-        if (piece.getPiecePosition() == index && humanPiece.getLeague() == piece.getLeague()) {
+        if (piece == null) {
+            return null;
+        }
+        else if (piece.getPiecePosition() == index && humanPiece.getLeague() == piece.getLeague()) {
             return piece;
         }
         return null;
