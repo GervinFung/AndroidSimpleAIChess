@@ -452,4 +452,21 @@
         app:layout_constraintStart_toEndOf="@+id/exitGameButton"
         app:layout_constraintTop_toTopOf="@+id/exitGameButton" />
 
+    <ProgressBar
+        android:id="@+id/AIProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/boardLayout"
+        app:layout_constraintTop_toTopOf="parent"
+        android:indeterminate="false"
+        android:progress="0"
+        android:maxHeight="100dp"
+        android:minHeight="100dp"
+
+        android:minWidth="100dp"
+        android:maxWidth="100dp"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

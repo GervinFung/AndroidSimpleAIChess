@@ -31,6 +31,7 @@ No. | Features
 9.| Multithreaded to enhance improve AI thinking time
 10.| Playable on both portrait and landscape mode
 11.| Auto flip board when it's other player's turn
+12.| Show AI Thinking Progress Bar
 
 ![portrait sample](portrait.png)
 ![landscape sample](landscape.png)

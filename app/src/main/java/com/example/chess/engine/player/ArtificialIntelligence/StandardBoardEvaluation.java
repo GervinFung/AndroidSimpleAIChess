@@ -1,20 +1,15 @@
 package com.example.chess.engine.player.ArtificialIntelligence;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.Move;
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.pieces.PieceType;
 import com.example.chess.engine.player.Player;
-import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 public final class StandardBoardEvaluation {
 
@@ -94,12 +89,10 @@ public final class StandardBoardEvaluation {
             0,  0,  0,  0,  0,  0,  0,  0
     };
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public int evaluate(final Board board, final int depth) {
         return - scorePlayer(board.blackPlayer(), depth) + scorePlayer(board.whitePlayer(), depth);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private static int scorePlayer(final Player player, final int depth) {
         return mobility(player) +
                 checkMate(player, depth) +
@@ -123,7 +116,6 @@ public final class StandardBoardEvaluation {
         return attackScore * ATTACK_MULTIPLIER;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private static int pieceEvaluations(final Player player) {
         int pieceValuationScore = 0;
         int numBishops = 0;
@@ -158,10 +150,8 @@ public final class StandardBoardEvaluation {
         return player.getOpponent().isInCheck() ? CHECK_KING : 0;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private static int pawnStructure(final Player player) { return pawnStructureScore.pawnStructureScore(player); }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private static List<Integer> positionValue(final Piece piece) {
         final boolean isWhite = piece.getLeague().isWhite();
 
@@ -178,11 +168,17 @@ public final class StandardBoardEvaluation {
         else { return getPiecePositionValue(isWhite, pawnEvaluation); }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private static List<Integer> getPiecePositionValue(final boolean isWhite, final int[] positionValue) {
         if (isWhite) {
-            return Collections.unmodifiableList(Arrays.stream(positionValue).boxed().collect(Collectors.toList()));
+
+            return Collections.unmodifiableList(Ints.asList(positionValue));
         }
-        return Collections.unmodifiableList(Lists.reverse(Arrays.stream(positionValue).boxed().collect(Collectors.toList())));
+        return reversePositionEvaluation(positionValue);
+    }
+
+    private static List<Integer> reversePositionEvaluation(final int[] positionValue) {
+        final List<Integer> piecePositionValue = new ArrayList<>(Ints.asList(positionValue));
+        Collections.reverse(piecePositionValue);
+        return Collections.unmodifiableList(piecePositionValue);
     }
 }

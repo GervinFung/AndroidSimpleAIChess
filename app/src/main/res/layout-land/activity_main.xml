@@ -454,4 +454,21 @@
         app:layout_constraintStart_toStartOf="@+id/AILevelSpinner"
         app:layout_constraintTop_toBottomOf="@+id/AILevelSpinner" />
 
+    <ProgressBar
+        android:id="@+id/AIProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="false"
+        android:progress="0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/undoMoveButton"
+        app:layout_constraintTop_toTopOf="parent"
+        android:maxHeight="100dp"
+        android:minHeight="100dp"
+
+        android:minWidth="100dp"
+        android:maxWidth="100dp"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

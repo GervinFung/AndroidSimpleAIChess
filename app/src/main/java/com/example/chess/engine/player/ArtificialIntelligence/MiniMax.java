@@ -1,9 +1,5 @@
 package com.example.chess.engine.player.ArtificialIntelligence;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.BoardUtils;
 import com.example.chess.engine.board.Move;
@@ -31,6 +27,7 @@ public final class MiniMax {
     private final int searchDepth, nThreads;
     private int quiescenceCount;
     private static final int MAX_QUIESCENCE = 5000 * 5;
+    private final AtomicInteger moveCount;
 
     private enum MoveSorter {
 
@@ -68,9 +65,10 @@ public final class MiniMax {
             this.searchDepth = searchDepth;
         }
         this.quiescenceCount = 0;
+        this.moveCount = new AtomicInteger(0);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+
     public Move execute(final Board board) {
         final Player currentPlayer = board.currentPlayer();
 
@@ -113,6 +111,7 @@ public final class MiniMax {
                             isCheckMate.set(true);
                         }
                     }
+                    this.moveCount.set(this.moveCount.get() + 1);
                 }
             });
         }
@@ -126,7 +125,8 @@ public final class MiniMax {
         return bestMove.get();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+    public int getMoveCount() { return this.moveCount.get(); }
+
     private int max(final Board board, final int depth, final int highest, final int lowest) {
         if (depth == 0 || BoardUtils.isEndGameScenario(board)) {
             return this.evaluator.evaluate(board, depth);
@@ -146,7 +146,6 @@ public final class MiniMax {
         return currentHighest;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private int min(final Board board, final int depth, final int highest, final int lowest) {
         if (depth == 0 || BoardUtils.isEndGameScenario(board)) {
             return this.evaluator.evaluate(board, depth);

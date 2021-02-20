@@ -1,15 +1,12 @@
 package com.example.chess.engine.pieces;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import com.example.chess.engine.League;
 import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.BoardUtils;
 import com.example.chess.engine.board.Move;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +21,6 @@ public final class Pawn extends Piece {
         super(PieceType.PAWN, piecePosition, league, true);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
     public Collection<Move> calculateLegalMoves(final Board board) {
         final List<Move> legalMoves = new ArrayList<>();
@@ -141,8 +137,7 @@ public final class Pawn extends Piece {
         return PieceType.PAWN.toString();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     public List<Piece> getPromotionPieces(final int destinationCoordinate) {
-        return Collections.unmodifiableList(List.of(new Queen(this.league, destinationCoordinate, false), new Rook(this.league, destinationCoordinate, false), new Bishop(this.league, destinationCoordinate, false), new Knight(this.league, destinationCoordinate, false)));
+        return Collections.unmodifiableList(Arrays.asList(new Queen(this.league, destinationCoordinate, false), new Rook(this.league, destinationCoordinate, false), new Bishop(this.league, destinationCoordinate, false), new Knight(this.league, destinationCoordinate, false)));
     }
 }

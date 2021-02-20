@@ -1,30 +1,31 @@
 package com.example.chess.engine.player.ArtificialIntelligence;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.pieces.PieceType;
 import com.example.chess.engine.player.Player;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 public final class PawnStructureAnalyzer {
     public static final int ISOLATED_PAWN_PENALTY = -10;
     public static final int DOUBLED_PAWN_PENALTY = -10;
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public int pawnStructureScore(final Player player) {
         final int[] pawnsOnColumnTable = createPawnColumnTable(calculatePlayerPawns(player));
         return calculatePawnColumnStack(pawnsOnColumnTable) + calculateIsolatedPawnPenalty(pawnsOnColumnTable);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+
     private static Collection<Piece> calculatePlayerPawns(final Player player) {
-        return Collections.unmodifiableList(player.getActivePieces().stream().filter(piece -> piece.getPieceType() == PieceType.PAWN).collect(Collectors.toList()));
+        final ArrayList<Piece> activePawn = new ArrayList<>(8);
+        for (final Piece piece :player.getActivePieces()) {
+            if (piece.getPieceType() == PieceType.PAWN) {
+                activePawn.add(piece);
+            }
+        }
+        return Collections.unmodifiableList(activePawn);
     }
 
     private static int calculatePawnColumnStack(final int[] pawnsOnColumnTable) {

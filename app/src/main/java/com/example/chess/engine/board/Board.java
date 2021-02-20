@@ -1,9 +1,5 @@
 package com.example.chess.engine.board;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import com.example.chess.engine.League;
 import com.example.chess.engine.pieces.*;
 import com.example.chess.engine.player.BlackPlayer;
@@ -11,12 +7,12 @@ import com.example.chess.engine.player.Player;
 import com.example.chess.engine.player.WhitePlayer;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.example.chess.engine.board.Move.MoveFactory;
 
@@ -36,7 +32,6 @@ public final class Board implements Serializable {
 
     private final Move transitionMove;
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private Board(final Builder builder) {
         this.gameBoard = createGameBoard(builder);
         this.whitePieces = calculateActivePieces(builder, League.WHITE);
@@ -77,24 +72,36 @@ public final class Board implements Serializable {
 
     public Collection<Piece> getBlackPieces() { return this.blackPieces; }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public Collection<Piece> getAllPieces() { return Collections.unmodifiableList(Stream.concat(this.whitePieces.stream(), this.blackPieces.stream()).collect(Collectors.toList())); }
+    public Collection<Piece> getAllPieces() {
+        final Collection<Piece> activePieces = new ArrayList<>(this.whitePieces);
+        activePieces.addAll(this.blackPieces);
+        return Collections.unmodifiableCollection(activePieces);
+    }
 
     public Pawn getEnPassantPawn() {
         return this.enPassantPawn;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private Collection<Move> calculateLegalMoves(final Collection<Piece> pieces) { return Collections.unmodifiableList(pieces.stream().flatMap(piece -> piece.calculateLegalMoves(this).stream()).collect(Collectors.toList())); }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private static Collection<Piece> calculateActivePieces(final Builder builder, final League league) { return Collections.unmodifiableList(builder.boardConfig.values().stream().filter(piece -> piece.getLeague() == league).collect(Collectors.toList())); }
-
-    public Tile getTile(final int tileCoordinate) {
-        return gameBoard.get(tileCoordinate);
+    private Collection<Move> calculateLegalMoves(final Collection<Piece> pieces) {
+        final List<Move> legalMoves = new ArrayList<>();
+        for (final Piece piece : pieces) {
+            legalMoves.addAll(piece.calculateLegalMoves(this));
+        }
+        return Collections.unmodifiableList(legalMoves);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
+    private static Collection<Piece> calculateActivePieces(final Builder builder, final League league) {
+        final List<Piece> activePieces = new ArrayList<>();
+        for (final Piece piece : builder.boardConfig.values()) {
+            if (piece.getLeague() == league) {
+                activePieces.add(piece);
+            }
+        }
+        return Collections.unmodifiableList(activePieces);
+    }
+
+    public Tile getTile(final int tileCoordinate) { return gameBoard.get(tileCoordinate); }
+
     public static List<Tile> createGameBoard(final Builder builder) {
         final Tile[] tiles = new Tile[BoardUtils.NUM_TILES];
 
@@ -102,10 +109,10 @@ public final class Board implements Serializable {
             tiles[i] = Tile.createTile(i, builder.boardConfig.get(i));
         }
         //PARSE array as list
-        return List.of(tiles);
+        return Collections.unmodifiableList(Arrays.asList(tiles));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
+
     public static Board createStandardBoard() {
         //white to move
         final Builder builder = new Builder(0, League.WHITE, null);
@@ -160,7 +167,6 @@ public final class Board implements Serializable {
             return this;
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         public Board build() { return new Board(this); }
 
         public void setTransitionMove(final Move transitionMove) { this.transitionMove = transitionMove; }

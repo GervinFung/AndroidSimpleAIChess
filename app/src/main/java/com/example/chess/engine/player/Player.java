@@ -1,9 +1,5 @@
 package com.example.chess.engine.player;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import com.example.chess.engine.League;
 import com.example.chess.engine.board.Board;
 import com.example.chess.engine.board.Move;
@@ -18,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 
-public abstract class Player  implements Serializable {
+public abstract class Player implements Serializable {
 
     private final static long serialVersionUID = 5L;
 
@@ -72,11 +68,11 @@ public abstract class Player  implements Serializable {
     public final boolean isInCheck() {
         return this.isInCheck;
     }
-    @RequiresApi(api = Build.VERSION_CODES.R)
+
     public final boolean isInCheckmate() {
         return this.isInCheck && noEscapeMoves();
     }
-    @RequiresApi(api = Build.VERSION_CODES.R)
+
     public final boolean isInStalemate() {
         return !this.isInCheck && noEscapeMoves();
     }
@@ -87,7 +83,7 @@ public abstract class Player  implements Serializable {
         return this.playerKing.isCastled();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
+
     protected final boolean noEscapeMoves() {
 
         for (final Move move : this.legalMoves) {
@@ -100,7 +96,6 @@ public abstract class Player  implements Serializable {
         return true;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     public final MoveTransition makeMove(final Move move) {
 
         final Board transitionBoard = move.execute();
@@ -117,6 +112,5 @@ public abstract class Player  implements Serializable {
         return new MoveTransition(null, null, MoveStatus.Illegal_Move);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     public final MoveTransition undoMove(final Move move) { return new MoveTransition(this.board, move.getBoard(), MoveStatus.DONE); }
 }

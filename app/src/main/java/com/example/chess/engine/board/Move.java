@@ -2,12 +2,10 @@ package com.example.chess.engine.board;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.os.Build;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
 import com.example.chess.MainActivity;
 import com.example.chess.R;
@@ -92,13 +90,20 @@ public abstract class Move implements Serializable {
         return null;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
+
     public Board execute() {
 
         final Builder builder = new Builder(this.board.getMoveCount() + 1, this.board.currentPlayer().getOpponent().getLeague(), null);
 
-        this.board.currentPlayer().getActivePieces().stream().filter(piece -> !this.movePiece.equals(piece)).forEach(builder::setPiece);
-        this.board.currentPlayer().getOpponent().getActivePieces().forEach(builder::setPiece);
+        for (final Piece piece : this.board.currentPlayer().getActivePieces()) {
+            if (!this.movePiece.equals(piece)) {
+                builder.setPiece(piece);
+            }
+        }
+
+        for (final Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+            builder.setPiece(piece);
+        }
 
         builder.setPiece(this.movePiece.movedPiece(this));
         builder.setTransitionMove(this);
@@ -115,7 +120,6 @@ public abstract class Move implements Serializable {
         @Override
         public boolean equals(final Object object) { return this == object || object instanceof  MajorMove && super.equals(object); }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public String toString() { return getMovedPiece().getPieceType().toString() + BoardUtils.getPositionAtCoordinate(this.destinationCoordinate); }
     }
@@ -165,7 +169,6 @@ public abstract class Move implements Serializable {
         @Override
         public boolean equals(final Object object) { return this == object || object instanceof MajorAttackMove && super.equals(object); }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public String toString() { return getMovedPiece().getPieceType() + BoardUtils.getPositionAtCoordinate(this.destinationCoordinate) + "x" + this.getAttackedPiece(); }
     }
@@ -179,7 +182,6 @@ public abstract class Move implements Serializable {
         @Override
         public boolean equals(final Object object) { return this == object || object instanceof  PawnMove && super.equals(object); }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         @NonNull
         public String toString() { return BoardUtils.getPositionAtCoordinate(this.destinationCoordinate); }
@@ -194,7 +196,6 @@ public abstract class Move implements Serializable {
         @Override
         public boolean equals(final Object object) { return this == object || object instanceof  PawnAttackMove && super.equals(object); }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         @NonNull
         public String toString() { return BoardUtils.getPositionAtCoordinate(this.movePiece.getPiecePosition()).charAt(0) + "x" + BoardUtils.getPositionAtCoordinate(this.destinationCoordinate); }
@@ -209,13 +210,21 @@ public abstract class Move implements Serializable {
         @Override
         public boolean equals(final Object object) { return this == object || object instanceof PawnEnPassantAttackMove && super.equals(object); }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public Board execute() {
             final Builder builder = new Builder(this.board.getMoveCount() + 1, this.board.currentPlayer().getOpponent().getLeague(), null);
 
-            this.board.currentPlayer().getActivePieces().stream().filter(piece -> !this.movePiece.equals(piece)).forEach(builder::setPiece);
-            this.board.currentPlayer().getOpponent().getActivePieces().stream().filter(piece -> !piece.equals(this.getAttackedPiece())).forEach(builder::setPiece);
+            for (final Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.movePiece.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (final Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                if (!piece.equals(this.getAttackedPiece())) {
+                    builder.setPiece(piece);
+                }
+            }
 
             builder.setPiece(this.movePiece.movedPiece(this));
             builder.setTransitionMove(this);
@@ -224,7 +233,6 @@ public abstract class Move implements Serializable {
         }
 
         @NonNull
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public String toString() {
             return super.toString();
@@ -253,27 +261,41 @@ public abstract class Move implements Serializable {
 
         public Move getDecoratedMove() { return this.decoratedMove; }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private Board promotePawn(final Board board) {
             final Builder builder = new Builder(this.board.getMoveCount(), board.currentPlayer().getLeague(), null);
 
-            board.currentPlayer().getActivePieces().stream().filter(piece -> !this.promotedPawn.equals(piece)).forEach(builder::setPiece);
-            board.currentPlayer().getOpponent().getActivePieces().forEach(builder::setPiece);
+            //TODO -CHECK HERE
+
+            for (final Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.promotedPawn.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (final Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                builder.setPiece(piece);
+            }
 
             builder.setPiece(this.promotedPiece.movedPiece(this));
             //promotion take a move, which the move flips player turn after executed, so this should not flip again
             return builder.build();
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public Board execute() {
 
             final Board pawnMoveBoard = this.decoratedMove.execute();
             final Builder builder = new Builder(this.board.getMoveCount() + 1, pawnMoveBoard.currentPlayer().getLeague(), null);
 
-            pawnMoveBoard.currentPlayer().getActivePieces().stream().filter(piece -> !this.promotedPawn.equals(piece)).forEach(builder::setPiece);
-            pawnMoveBoard.currentPlayer().getOpponent().getActivePieces().forEach(builder::setPiece);
+            for (final Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.promotedPawn.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (final Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                builder.setPiece(piece);
+            }
 
             this.promotedPiece = this.MinimaxPromotionPiece;
             builder.setPiece(this.MinimaxPromotionPiece.movedPiece(this));
@@ -290,7 +312,6 @@ public abstract class Move implements Serializable {
             return icons;
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private void getImageViewOfPromotePiece(final Piece promotedPiece, final Dialog dialog, final int iconsResource, final int resource) {
             final ImageView pieceImageView = dialog.findViewById(resource);
             pieceImageView.setImageResource(iconsResource);
@@ -303,7 +324,6 @@ public abstract class Move implements Serializable {
             pieceImageView.setEnabled(true);
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         public void startPromotion() {
             final List<Piece> getPromotionPieces = this.promotedPawn.getPromotionPieces(this.destinationCoordinate);
             final int[] iconsResource = pawnPromotionInterface(getPromotionPieces);
@@ -331,7 +351,6 @@ public abstract class Move implements Serializable {
             return this.decoratedMove.getAttackedPiece();
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public String toString() { return BoardUtils.getPositionAtCoordinate(destinationCoordinate) + "=" +this.promotedPiece.toString().charAt(0); }
 
@@ -348,14 +367,20 @@ public abstract class Move implements Serializable {
             super(board, movePiece, destinationCoordinate);
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public Board execute() {
             final Pawn movedPawn = (Pawn)this.movePiece.movedPiece(this);
             final Builder builder = new Builder(this.board.getMoveCount() + 1, this.board.currentPlayer().getOpponent().getLeague(), movedPawn);
 
-            this.board.currentPlayer().getActivePieces().stream().filter(piece -> !this.movePiece.equals(piece)).forEach(builder::setPiece);
-            this.board.currentPlayer().getOpponent().getActivePieces().forEach(builder::setPiece);
+            for (final Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.movePiece.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (final Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                builder.setPiece(piece);
+            }
 
             builder.setPiece(movedPawn);
             builder.setTransitionMove(this);
@@ -363,7 +388,6 @@ public abstract class Move implements Serializable {
             return builder.build();
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         @NonNull
         public String toString() { return BoardUtils.getPositionAtCoordinate(destinationCoordinate); }
@@ -394,7 +418,6 @@ public abstract class Move implements Serializable {
             return true;
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         @Override
         public Board execute() {
 

@@ -1,7 +1,6 @@
 package com.example.chess;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DividerItemDecoration;
@@ -12,7 +11,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -20,6 +18,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -36,6 +35,7 @@ import com.example.chess.engine.board.MoveTransition;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.example.chess.engine.board.Move.*;
 
@@ -52,8 +52,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private Spinner AILevelSpinner;
     private Spinner whoIsAISpinner;
     private boolean AIThinking, gameEnded;
+    private ProgressBar AIProgressBar;
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     public void updateBoard(final Board chessBoard) {
         this.chessBoard = chessBoard;
         if (chessBoard.currentPlayer().getLeague().isBlack()) {
@@ -82,7 +82,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.gameEnded = false;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,12 +96,11 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             this.moveHistory.setAdapter(new MoveHistory(this.moveLog));
             this.gameEnded = mainActivity.gameEnded;
             this.AIThinking = mainActivity.AIThinking;
-            System.out.println(this.AIThinking);
         } else {
             this.updateBoard(Board.createStandardBoard());
         }
     }
-    @RequiresApi(api = Build.VERSION_CODES.R)
+
     private void displayEndGameMessage() {
         if (this.chessBoard.currentPlayer().isInCheckmate()) {
             this.gameEnded = true;
@@ -134,10 +132,9 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     @Override
     public void onBackPressed() {
         new AlertDialog.Builder(this)
-                .setTitle("Exit Gane")
+                .setTitle("Exit Game")
                 .setMessage("Request confirmation to exit game and save the current one")
                 .setPositiveButton("yes", (dialog, which) -> {
-                    //GameDataUtil.writeFENToFile(this);
                     GameDataUtil.writeMoveToFiles(this.moveLog, this);
                     this.exitGame();
                 })
@@ -153,7 +150,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         System.exit(0);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void initComponents() {
 
         this.moveHistory = new MoveHistoryRecyclerViewBuilder(this, R.id.moveHistory).build();
@@ -161,6 +157,9 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.blackCapturedPiece = new CapturedPieceRecyclerViewBuilder(this, R.id.blackCapturePieces).build();
 
         new GameButton(this);
+
+        this.AIProgressBar = findViewById(R.id.AIProgressBar);
+        this.AIProgressBar.setVisibility(View.INVISIBLE);
 
         this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
         this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
@@ -188,7 +187,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         });
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void updateUI(final Move move) {
         if (move.isAttack() || move instanceof PawnPromotion && ((PawnPromotion)move).getDecoratedMove().isAttack()) {
             if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
@@ -269,7 +267,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     private final static class GameButton {
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private GameButton(final MainActivity mainActivity) {
             this.initStartButton(mainActivity);
             this.initUndoButton(mainActivity);
@@ -278,7 +275,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             this.initLoadGameButton(mainActivity);
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private void initStartButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.newGameButton);
             button.setOnClickListener(V-> {
@@ -287,7 +283,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                             .setTitle("New Game")
                             .setMessage("Request confirmation to start a new game and save the current one")
                             .setPositiveButton("yes", (dialog, which) -> {
-                                //GameDataUtil.writeFENToFile(mainActivity);
                                 GameDataUtil.writeMoveToFiles(mainActivity.moveLog, mainActivity);
                                 mainActivity.restart(Board.createStandardBoard());
                             })
@@ -300,7 +295,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         }
 
         //undo move button
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private void initUndoButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.undoMoveButton);
             button.setOnClickListener(V-> {
@@ -321,46 +315,36 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         }
 
         //exit game button
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private void initExitButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.exitGameButton);
             button.setOnClickListener(V-> mainActivity.onBackPressed());
         }
 
         //save game button
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private void initSaveGameButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.saveGameButton);
             button.setOnClickListener(V->
                     new AlertDialog.Builder(mainActivity)
                             .setTitle("Save Game")
                             .setMessage("Request confirmation to save game")
-                            .setPositiveButton(android.R.string.yes, (dialog, which) -> {
-                                //GameDataUtil.writeFENToFile(mainActivity);
-                                GameDataUtil.writeMoveToFiles(mainActivity.moveLog, mainActivity);
-                            })
+                            .setPositiveButton(android.R.string.yes, (dialog, which) -> GameDataUtil.writeMoveToFiles(mainActivity.moveLog, mainActivity))
                             .setNegativeButton(android.R.string.no, (dialog, which) -> {})
                             .show());
         }
 
         //load game button
-        @RequiresApi(api = Build.VERSION_CODES.R)
         private void initLoadGameButton(final MainActivity mainActivity) {
             final Button button = mainActivity.findViewById(R.id.resumeGameButton);
             button.setOnClickListener(V->
                     new AlertDialog.Builder(mainActivity)
                             .setTitle("Load Game")
                             .setMessage("Request confirmation to load saved game")
-                            .setPositiveButton(android.R.string.yes, (dialog, which) -> {
-                                //mainActivity.restart(GameDataUtil.createGameFromFEN(mainActivity));
-                                mainActivity.resume(GameDataUtil.readFileToMoveLog(mainActivity));
-                            })
+                            .setPositiveButton(android.R.string.yes, (dialog, which) -> mainActivity.resume(GameDataUtil.readFileToMoveLog(mainActivity)))
                             .setNegativeButton(android.R.string.no, (dialog, which) -> {})
                             .show());
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void resume(final MoveLog moveLog) {
         this.gameEnded = false;
         //Reinitialise spinner
@@ -402,7 +386,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.blackCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, this.chessBoard.blackPlayer().getLeague()));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void restart(final Board board) {
         this.gameEnded = false;
         //Reinitialise spinner
@@ -441,7 +424,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.blackCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, this.chessBoard.currentPlayer().getLeague()));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void drawTile(final int index) {
         final int tileColor;
         if (BoardUtils.FIRST_ROW.get(index) || BoardUtils.THIRD_ROW.get(index) || BoardUtils.FIFTH_ROW.get(index) || BoardUtils.SEVENTH_ROW.get(index)) {
@@ -462,7 +444,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         return Collections.emptyList();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void highlightMove(final Board board) {
         for (final Move move : this.pieceLegalMoves(board)) {
             final int coordinate = move.getDestinationCoordinate();
@@ -470,10 +451,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                 //dark red
                 this.tilesView[coordinate].setBackgroundColor(Color.rgb(204, 0, 0));
             } else {
-                if (BoardUtils.FIRST_ROW.get(coordinate) ||
-                        BoardUtils.THIRD_ROW.get(coordinate) ||
-                        BoardUtils.FIFTH_ROW.get(coordinate) ||
-                        BoardUtils.SEVENTH_ROW.get(coordinate)) {
+                if (BoardUtils.FIRST_ROW.get(coordinate) || BoardUtils.THIRD_ROW.get(coordinate) || BoardUtils.FIFTH_ROW.get(coordinate) || BoardUtils.SEVENTH_ROW.get(coordinate)) {
                     this.tilesView[coordinate].setBackgroundColor((coordinate % 2 == 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor));
                 } else {
                     this.tilesView[coordinate].setBackgroundColor((coordinate % 2 != 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor));
@@ -482,24 +460,40 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void runAI() {
+        final Handler handler2 = new Handler();
+        final MiniMax miniMax = new MiniMax(MainActivity.this.AILevelSpinner.getSelectedItemPosition() + 1);
+        final AtomicBoolean runProgressBar = new AtomicBoolean(true);
+        this.AIProgressBar.setVisibility(View.VISIBLE);
+        final int MAX = this.chessBoard.currentPlayer().getLegalMoves().size();
+        new Thread(() -> {
+            while (runProgressBar.get()) {
+                handler2.post(() -> this.AIProgressBar.setProgress(100 * miniMax.getMoveCount() / MAX));
+            }
+        }).start();
         final Handler handler = new Handler();
         new Thread(() -> {
-            final Move bestMove = new MiniMax(MainActivity.this.AILevelSpinner.getSelectedItemPosition() + 1).execute(MainActivity.this.getChessBoard());
+            final Move bestMove = miniMax.execute(MainActivity.this.getChessBoard());
+            runProgressBar.lazySet(false);
             handler.post(() -> {
-                MainActivity.this.updateBoard(bestMove.execute());
-                MainActivity.this.moveLog.addMove(bestMove);
-                MainActivity.this.updateUI(bestMove);
+                this.updateBoard(bestMove.execute());
+                this.moveLog.addMove(bestMove);
+                this.updateUI(bestMove);
+                this.AIProgressBar.setVisibility(View.INVISIBLE);
+                this.AIProgressBar.setProgress(0);
             });
         }).start();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private int initTileView(final int index, final View view) {
         view.setOnClickListener(V-> {
             try {
                 if (this.humanMovePiece == null && !this.gameEnded) {
+                    if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+                        this.inverseBoard();
+                    } else {
+                        this.drawBoard();
+                    }
                     this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
                     if (this.humanMovePiece.getLeague() != this.chessBoard.currentPlayer().getLeague()) {
                         this.humanMovePiece = null;
@@ -509,6 +503,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                     final Move move = MoveFactory.createMove(this.chessBoard, this.humanMovePiece, this.humanMovePiece.getPiecePosition(), index);
                     final MoveTransition transition = this.chessBoard.currentPlayer().makeMove(move);
                     if (transition.getMoveStatus().isDone()) {
+                        this.humanMovePiece = null;
                         this.chessBoard = transition.getLatestBoard();
                         if (move instanceof PawnPromotion) {
                             ((PawnPromotion)move).setContext(this).startPromotion();
@@ -531,8 +526,22 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                                 this.inverseBoard();
                             }
                         }
+                    } else if (getPiece(this.humanMovePiece, index) != null) {
+                        if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+                            this.inverseBoard();
+                        } else {
+                            this.drawBoard();
+                        }
+                        this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
+                        this.highlightMove(this.chessBoard);
                     }
+                } else {
                     this.humanMovePiece = null;
+                    if (this.whoIsAISpinner.getSelectedItemPosition() == 1) {
+                        this.drawBoard();
+                    } else if (this.whoIsAISpinner.getSelectedItemPosition() == 2){
+                        this.inverseBoard();
+                    }
                 }
             } catch (final NullPointerException ignored) {}
         });
@@ -544,7 +553,14 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         return index + 1;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
+    private Piece getPiece(final Piece humanPiece, final int index) {
+        final Piece piece = this.chessBoard.getTile(index).getPiece();
+        if (piece.getPiecePosition() == index && humanPiece.getLeague() == piece.getLeague()) {
+            return piece;
+        }
+        return null;
+    }
+
     private void drawBoard() {
         int index = this.initTileView(0, this.findViewById(R.id.view00));
         index = this.initTileView(index, this.findViewById(R.id.view01));
@@ -619,7 +635,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.initTileView(index, this.findViewById(R.id.view63));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
     private void inverseBoard() {
         int index = this.initTileView(63, this.findViewById(R.id.view00));
         index = this.initTileView(index, this.findViewById(R.id.view01));

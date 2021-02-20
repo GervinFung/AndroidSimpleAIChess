@@ -1,7 +1,6 @@
 package com.example.chess;
 
 import android.graphics.Color;
-import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,7 +8,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.chess.engine.board.BoardUtils;
@@ -17,10 +15,10 @@ import com.example.chess.engine.board.Move;
 import com.example.chess.engine.board.MoveLog;
 import com.example.chess.engine.pieces.Piece;
 
-import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.example.chess.engine.League;
 
@@ -28,7 +26,6 @@ public final class CapturedPiece extends RecyclerView.Adapter<CapturedPiece.View
     private final List<Piece> takenPieces;
     private final HashMap<Piece, Integer> takenPiecesMap;
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public CapturedPiece(final MoveLog moveLog, final League league) {
         this.takenPiecesMap = new HashMap<>();
         for (final Move move: moveLog.getMoves()) {
@@ -41,12 +38,23 @@ public final class CapturedPiece extends RecyclerView.Adapter<CapturedPiece.View
                 }
             }
         }
-        this.takenPieces = this.takenPiecesMap.keySet().stream().sorted(Comparator.comparingInt(Piece::getPieceValue)).collect(Collectors.toList());
+        this.takenPieces = this.sortedPieces(this.takenPiecesMap);
         this.notifyDataSetChanged();
+    }
+
+    private List<Piece> sortedPieces(final HashMap<Piece, Integer> takenPiecesMap) {
+        final List<Piece> unsortedPieces = new ArrayList<>(takenPiecesMap.keySet());
+        Collections.sort(unsortedPieces, (piece1, piece2) -> {
+            if (piece1.getPieceValue() > piece2.getPieceValue()) { return 1; }
+            else if (piece1.getPieceValue() < piece2.getPieceValue()) { return -1; }
+            return 0;
+        });
+        return Collections.unmodifiableList(unsortedPieces);
     }
 
     private boolean notContainSamePiece(final HashMap<Piece, Integer> takenPieces, final Piece takenPiece) {
         for (final Piece piece : takenPieces.keySet()) {
+
             if (takenPiece.toString().equals(piece.toString())) {
                 final int quantity = takenPieces.get(piece) + 1;
                 takenPieces.remove(piece);
