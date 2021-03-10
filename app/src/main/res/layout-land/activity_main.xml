@@ -8,14 +8,25 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/exitGameButton"
+        android:id="@+id/gamePreferences"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Exit Game"
+        android:text="Preferences"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/resumeGameButton"
-        app:layout_constraintStart_toStartOf="@+id/resumeGameButton"
-        app:layout_constraintTop_toBottomOf="@+id/resumeGameButton" />
+        app:layout_constraintEnd_toEndOf="@id/gameOption"
+        app:layout_constraintStart_toStartOf="@id/gameOption"
+        app:layout_constraintTop_toBottomOf="@+id/gameOption" />
+
+
+    <Button
+        android:id="@+id/gameOption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Game Option"
+        app:layout_constraintBottom_toBottomOf="@id/gamePreferences"
+        app:layout_constraintEnd_toEndOf="@+id/setupAI"
+        app:layout_constraintStart_toStartOf="@+id/setupAI"
+        app:layout_constraintTop_toBottomOf="@+id/setupAI" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/moveHistory"
@@ -395,64 +406,24 @@
         app:layout_constraintTop_toBottomOf="@+id/whiteCapturedPiece" />
 
     <Button
-        android:id="@+id/newGameButton"
+        android:id="@+id/gameMenuButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Game"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/saveGameButton"
-        app:layout_constraintEnd_toEndOf="@+id/saveGameButton"/>
-
-    <Button
-        android:id="@+id/undoMoveButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Undo Move"
-        app:layout_constraintEnd_toEndOf="@+id/saveGameButton"
-        app:layout_constraintStart_toStartOf="@+id/saveGameButton"
-        app:layout_constraintTop_toBottomOf="@+id/saveGameButton"
-        app:layout_constraintBottom_toTopOf="@+id/resumeGameButton"/>
-
-    <Button
-        android:id="@+id/saveGameButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Save Game"
-        app:layout_constraintEnd_toEndOf="@+id/newGameButton"
-        app:layout_constraintStart_toStartOf="@+id/newGameButton"
-        app:layout_constraintTop_toBottomOf="@+id/newGameButton"
-        app:layout_constraintBottom_toTopOf="@id/undoMoveButton"/>
-
-    <Button
-        android:id="@+id/resumeGameButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Load Game"
-        app:layout_constraintEnd_toEndOf="@+id/undoMoveButton"
-        app:layout_constraintStart_toStartOf="@+id/undoMoveButton"
-        app:layout_constraintTop_toBottomOf="@+id/undoMoveButton"
-        app:layout_constraintBottom_toTopOf="@+id/exitGameButton"/>
-
-    <Spinner
-        android:id="@+id/AILevelSpinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:text="Game Menu"
+        app:layout_constraintBottom_toTopOf="@id/setupAI"
         app:layout_constraintEnd_toStartOf="@+id/boardLayout"
-        app:layout_constraintHorizontal_bias="0.75"
-        app:layout_constraintStart_toEndOf="@+id/undoMoveButton"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.26999998" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <Spinner
-        android:id="@+id/whoIsAISpinner"
+    <Button
+        android:id="@+id/setupAI"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/AILevelSpinner"
-        app:layout_constraintStart_toStartOf="@+id/AILevelSpinner"
-        app:layout_constraintTop_toBottomOf="@+id/AILevelSpinner" />
+        android:text="Setup AI"
+        app:layout_constraintBottom_toTopOf="@+id/gameOption"
+        app:layout_constraintEnd_toEndOf="@+id/gameMenuButton"
+        app:layout_constraintStart_toStartOf="@+id/gameMenuButton"
+        app:layout_constraintTop_toBottomOf="@+id/gameMenuButton" />
 
     <ProgressBar
         android:id="@+id/AIProgressBar"
@@ -460,15 +431,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:indeterminate="false"
+        android:maxWidth="100dp"
+        android:maxHeight="100dp"
+        android:minWidth="100dp"
+        android:minHeight="100dp"
         android:progress="0"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/undoMoveButton"
-        app:layout_constraintTop_toTopOf="parent"
-        android:maxHeight="100dp"
-        android:minHeight="100dp"
 
-        android:minWidth="100dp"
-        android:maxWidth="100dp"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

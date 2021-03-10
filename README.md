@@ -30,8 +30,10 @@ No. | Features
 8.| Undo previous move
 9.| Multithreaded to enhance improve AI thinking time
 10.| Playable on both portrait and landscape mode
-11.| Auto flip board when it's other player's turn
+11.| Flip board
 12.| Show AI Thinking Progress Bar
+13.| Choose 6 different board color
+14.| Show previous move made by others(HUMAN/COMPUTER)
 
 ![portrait sample](portrait.png)
 ![landscape sample](landscape.png)

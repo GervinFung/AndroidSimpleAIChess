@@ -14,13 +14,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Spinner;
-import android.widget.Toast;
 
 import com.example.chess.engine.FEN.GameDataUtil;
 import com.example.chess.engine.League;
@@ -31,7 +26,15 @@ import com.example.chess.engine.board.MoveLog;
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.player.ArtificialIntelligence.MiniMax;
 import com.example.chess.engine.board.MoveTransition;
+import com.example.chess.engine.player.Player;
+import com.example.chess.gui.BoardColor;
+import com.example.chess.gui.BoardOrientation;
+import com.example.chess.gui.CapturedPiece;
+import com.example.chess.gui.GameButton;
+import com.example.chess.gui.MoveHistory;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,21 +49,41 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private final ImageView[] tilesView;
     private Piece humanMovePiece;
     private Board chessBoard;
-    private final int legalMovesLightTileColor, legalMovesDarkTileColor;
+    private BoardOrientation boardOrientation;
+    private BoardColor boardColor;
     private RecyclerView moveHistory, whiteCapturedPiece, blackCapturedPiece;
+    private int AILevel;
     private MoveLog moveLog;
-    private Spinner AILevelSpinner;
-    private Spinner whoIsAISpinner;
-    private boolean AIThinking, gameEnded;
+    private volatile boolean AIThinking;
+    private boolean gameEnded, showHumanMove, showAIMove, showHighlightMove;
     private ProgressBar AIProgressBar;
+    private final PropertyChangeSupport propertyChangeSupport;
+    private PLAYER_TYPE whitePlayerType, blackPlayerType;
+    private Move humanMove, aiMove;
+
+    public MoveLog getMoveLog() { return this.moveLog; }
+    public void setBoardColor(final BoardColor boardColor) { this.boardColor = boardColor; }
+    public void changeBoardOrientation() { this.boardOrientation = this.boardOrientation.getOpposite(); }
+    public void drawBoard() { this.boardOrientation.drawBoard(this); }
+    public void setAILevel(final int AILevel) {
+        if (AILevel > 0 && AILevel < 5) {
+            this.AILevel = AILevel;
+        } else {
+            throw new RuntimeException("AI Level 1 TO 4 only");
+        }
+    }
+    public void firePropertyChange() { this.propertyChangeSupport.firePropertyChange(null, null, null); }
+    public void setAIThinking(final boolean AIThinking) { this.AIThinking = AIThinking; }
+    public void inverseHighlightLegalMoves() { this.showHighlightMove = !this.showHighlightMove; }
+    public void inverseShowHumanMove() { this.showHumanMove = !this.showHumanMove; }
+    public void inverseShowAIMove() { this.showAIMove = !this.showAIMove; }
+    public void renderProgressBarInvisible() { this.AIProgressBar.setVisibility(View.INVISIBLE); }
+    public void setWhitePlayerType(final boolean changeToAI) { this.whitePlayerType = changeToAI ? PLAYER_TYPE.AI : PLAYER_TYPE.HUMAN; }
+    public void setBlackPlayerType(final boolean changeToAI) { this.blackPlayerType = changeToAI ? PLAYER_TYPE.AI : PLAYER_TYPE.HUMAN; }
 
     public void updateBoard(final Board chessBoard) {
         this.chessBoard = chessBoard;
-        if (chessBoard.currentPlayer().getLeague().isBlack()) {
-            this.inverseBoard();
-        } else {
-            this.drawBoard();
-        }
+        this.boardOrientation.drawBoard(this);
     }
 
     @Override
@@ -72,15 +95,39 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     //getter
     public Board getChessBoard() { return this.chessBoard; }
+    public boolean getHighlightLegalMoves() { return this.showHighlightMove; }
+    public boolean isShowHumanMove() { return this.showHumanMove; }
+    public boolean isShowAIMove() { return this.showAIMove; }
 
     public MainActivity() {
         this.tilesView = new ImageView[64];
+        final PropertyChangeListener propertyChangeListener = evt -> {
+            if (this.isAIPlayer(this.chessBoard.currentPlayer()) && !this.gameEnded) {
+                if(!this.AIThinking) {
+                    this.AIThinking = true;
+                    this.runAI();
+                }
+            }
+            if (!this.isAIPlayer(this.chessBoard.currentPlayer())) {
+                this.AIThinking = false;
+            }
+            this.displayEndGameMessage();
+        };
+        this.propertyChangeSupport = new PropertyChangeSupport(propertyChangeListener);
+        this.propertyChangeSupport.addPropertyChangeListener(propertyChangeListener);
+        this.whitePlayerType = PLAYER_TYPE.HUMAN;
+        this.blackPlayerType = PLAYER_TYPE.HUMAN;
         this.moveLog = new MoveLog();
-        this.legalMovesLightTileColor = Color.rgb(169, 169, 169);
-        this.legalMovesDarkTileColor = Color.rgb(105, 105, 105);
+        this.boardColor = BoardColor.CLASSIC;
+        this.boardOrientation = BoardOrientation.NORMAL;
+        this.showHighlightMove = true;
         this.AIThinking = false;
         this.gameEnded = false;
+        this.showHumanMove = true;
+        this.showAIMove = true;
     }
+
+    private enum PLAYER_TYPE {HUMAN, AI}
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -90,12 +137,24 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         if (savedInstanceState != null) {
             final MainActivity mainActivity = (MainActivity)savedInstanceState.getSerializable(MainActivity.SERIALIZABLE_MAIN_ACTIVITY);
             this.updateBoard(mainActivity.getChessBoard());
-            this.moveLog = mainActivity.moveLog;
+            this.humanMovePiece = mainActivity.humanMovePiece;
+            this.boardOrientation = mainActivity.boardOrientation;
+            this.boardColor = mainActivity.boardColor;
             this.whiteCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, League.WHITE));
             this.blackCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, League.BLACK));
             this.moveHistory.setAdapter(new MoveHistory(this.moveLog));
+            this.AILevel = mainActivity.AILevel;
+            this.moveLog = mainActivity.moveLog;
             this.gameEnded = mainActivity.gameEnded;
             this.AIThinking = mainActivity.AIThinking;
+            this.showHighlightMove = mainActivity.showHighlightMove;
+            this.showHumanMove = mainActivity.showHumanMove;
+            this.showAIMove = mainActivity.showAIMove;
+            this.AIProgressBar = mainActivity.AIProgressBar;
+            this.whitePlayerType = mainActivity.whitePlayerType;
+            this.blackPlayerType = mainActivity.blackPlayerType;
+            this.humanMove = mainActivity.humanMove;
+            this.aiMove = mainActivity.humanMove;
         } else {
             this.updateBoard(Board.createStandardBoard());
         }
@@ -150,6 +209,13 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         System.exit(0);
     }
 
+    public boolean isAIPlayer(final Player player) {
+        if(player.getLeague() == League.WHITE) {
+            return this.whitePlayerType == PLAYER_TYPE.AI;
+        }
+        return this.blackPlayerType == PLAYER_TYPE.AI;
+    }
+
     private void initComponents() {
 
         this.moveHistory = new MoveHistoryRecyclerViewBuilder(this, R.id.moveHistory).build();
@@ -160,34 +226,9 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
         this.AIProgressBar = findViewById(R.id.AIProgressBar);
         this.AIProgressBar.setVisibility(View.INVISIBLE);
-
-        this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
-                if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
-                    MainActivity.this.AIThinking = true;
-                    if (((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
-                            || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack()))) {
-                        if (parent.getSelectedItemPosition() == 1) {
-                            MainActivity.this.drawBoard();
-                        } else if (parent.getSelectedItemPosition() == 2) {
-                            MainActivity.this.inverseBoard();
-                        }
-                        MainActivity.this.runAI();
-                    }
-                } else {
-                    MainActivity.this.AIThinking = false;
-                }
-            }
-
-            @Override
-            public void onNothingSelected(final AdapterView<?> parent) {}
-        });
     }
 
-    private void updateUI(final Move move) {
+    public void updateUI(final Move move) {
         if (move.isAttack() || move instanceof PawnPromotion && ((PawnPromotion)move).getDecoratedMove().isAttack()) {
             if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
                 this.whiteCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, League.BLACK));
@@ -198,25 +239,6 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         }
         this.moveHistory.setAdapter(new MoveHistory(this.moveLog));
         this.displayEndGameMessage();
-    }
-
-    private final static class GameSpinnerBuilder{
-        private final MainActivity mainActivity;
-        private final int id,resource;
-
-        private GameSpinnerBuilder(final MainActivity mainActivity, final int id, final int resource) {
-            this.mainActivity = mainActivity;
-            this.id = id;
-            this.resource = resource;
-        }
-
-        private Spinner build() {
-            final Spinner spinner = mainActivity.findViewById(this.id);
-            final ArrayAdapter<CharSequence> arrayAdapter = ArrayAdapter.createFromResource(mainActivity, this.resource, R.layout.choose_level);
-            arrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinner.setAdapter(arrayAdapter);
-            return spinner;
-        }
     }
 
     private final static class CapturedPieceRecyclerViewBuilder {
@@ -265,113 +287,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         }
     }
 
-    private final static class GameButton {
-
-        private GameButton(final MainActivity mainActivity) {
-            this.initStartButton(mainActivity);
-            this.initUndoButton(mainActivity);
-            this.initExitButton(mainActivity);
-            this.initSaveGameButton(mainActivity);
-            this.initLoadGameButton(mainActivity);
-        }
-
-        private void initStartButton(final MainActivity mainActivity) {
-            final Button button = mainActivity.findViewById(R.id.newGameButton);
-            button.setOnClickListener(V-> {
-                if (mainActivity.moveLog.size() != 0) {
-                    new AlertDialog.Builder(mainActivity)
-                            .setTitle("New Game")
-                            .setMessage("Request confirmation to start a new game and save the current one")
-                            .setPositiveButton("yes", (dialog, which) -> {
-                                GameDataUtil.writeMoveToFiles(mainActivity.moveLog, mainActivity);
-                                mainActivity.restart(Board.createStandardBoard());
-                            })
-                            .setNegativeButton("no", (dialog, which) -> mainActivity.restart(Board.createStandardBoard()))
-                            .setNeutralButton("cancel", (dialog, which) -> {})
-                            .show();
-                }
-                else { Toast.makeText(mainActivity, "A New Game is created", Toast.LENGTH_LONG).show(); }
-            });
-        }
-
-        //undo move button
-        private void initUndoButton(final MainActivity mainActivity) {
-            final Button button = mainActivity.findViewById(R.id.undoMoveButton);
-            button.setOnClickListener(V-> {
-                if (mainActivity.moveLog.size() != 0) {
-                    new AlertDialog.Builder(mainActivity)
-                            .setTitle("Undo Move")
-                            .setMessage("Request confirmation to undo previous move")
-                            .setPositiveButton(android.R.string.yes, (dialog, which) -> {
-                                final Move lastMove = mainActivity.moveLog.removeMove();
-                                mainActivity.updateUI(lastMove);
-                                mainActivity.updateBoard(mainActivity.getChessBoard().currentPlayer().undoMove(lastMove).getPreviousBoard());
-                            })
-                            .setNegativeButton(android.R.string.no, (dialog, which) -> {})
-                            .show();
-                }
-                else { Toast.makeText(mainActivity, "No Move to Undo", Toast.LENGTH_LONG).show(); }
-            });
-        }
-
-        //exit game button
-        private void initExitButton(final MainActivity mainActivity) {
-            final Button button = mainActivity.findViewById(R.id.exitGameButton);
-            button.setOnClickListener(V-> mainActivity.onBackPressed());
-        }
-
-        //save game button
-        private void initSaveGameButton(final MainActivity mainActivity) {
-            final Button button = mainActivity.findViewById(R.id.saveGameButton);
-            button.setOnClickListener(V->
-                    new AlertDialog.Builder(mainActivity)
-                            .setTitle("Save Game")
-                            .setMessage("Request confirmation to save game")
-                            .setPositiveButton(android.R.string.yes, (dialog, which) -> GameDataUtil.writeMoveToFiles(mainActivity.moveLog, mainActivity))
-                            .setNegativeButton(android.R.string.no, (dialog, which) -> {})
-                            .show());
-        }
-
-        //load game button
-        private void initLoadGameButton(final MainActivity mainActivity) {
-            final Button button = mainActivity.findViewById(R.id.resumeGameButton);
-            button.setOnClickListener(V->
-                    new AlertDialog.Builder(mainActivity)
-                            .setTitle("Load Game")
-                            .setMessage("Request confirmation to load saved game")
-                            .setPositiveButton(android.R.string.yes, (dialog, which) -> mainActivity.resume(GameDataUtil.readFileToMoveLog(mainActivity)))
-                            .setNegativeButton(android.R.string.no, (dialog, which) -> {})
-                            .show());
-        }
-    }
-
-    private void resume(final MoveLog moveLog) {
+    public void resume(final MoveLog moveLog) {
         this.gameEnded = false;
-        //Reinitialise spinner
-        this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
-                if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
-                    MainActivity.this.AIThinking = true;
-                    if (((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
-                            || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack()))) {
-                        if (parent.getSelectedItemPosition() == 1) {
-                            MainActivity.this.drawBoard();
-                        } else if (parent.getSelectedItemPosition() == 2) {
-                            MainActivity.this.inverseBoard();
-                        }
-                        MainActivity.this.runAI();
-                    }
-                } else {
-                    MainActivity.this.AIThinking = false;
-                }
-            }
-
-            @Override
-            public void onNothingSelected(final AdapterView<?> parent) {}
-        });
 
         //Clear move history
         this.moveLog.clear();
@@ -386,33 +303,8 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         this.blackCapturedPiece.setAdapter(new CapturedPiece(this.moveLog, this.chessBoard.blackPlayer().getLeague()));
     }
 
-    private void restart(final Board board) {
+    public void restart(final Board board) {
         this.gameEnded = false;
-        //Reinitialise spinner
-        this.AILevelSpinner = new GameSpinnerBuilder(this, R.id.AILevelSpinner, R.array.level).build();
-        this.whoIsAISpinner = new GameSpinnerBuilder(this, R.id.whoIsAISpinner, R.array.AI).build();
-        this.whoIsAISpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(final AdapterView<?> parent, final View view, final int position, final long id) {
-                if (parent.getSelectedItemPosition() == 1 || parent.getSelectedItemPosition() == 2) {
-                    MainActivity.this.AIThinking = true;
-                    if (((parent.getSelectedItemPosition() == 1 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isWhite())
-                            || (parent.getSelectedItemPosition() == 2 && MainActivity.this.getChessBoard().currentPlayer().getLeague().isBlack()))) {
-                        if (parent.getSelectedItemPosition() == 1) {
-                            MainActivity.this.drawBoard();
-                        } else if (parent.getSelectedItemPosition() == 2) {
-                            MainActivity.this.inverseBoard();
-                        }
-                        MainActivity.this.runAI();
-                    }
-                } else {
-                    MainActivity.this.AIThinking = false;
-                }
-            }
-
-            @Override
-            public void onNothingSelected(final AdapterView<?> parent) {}
-        });
 
         this.updateBoard(board);
         //Clear move history
@@ -427,9 +319,9 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     private void drawTile(final int index) {
         final int tileColor;
         if (BoardUtils.FIRST_ROW.get(index) || BoardUtils.THIRD_ROW.get(index) || BoardUtils.FIFTH_ROW.get(index) || BoardUtils.SEVENTH_ROW.get(index)) {
-            tileColor = (index % 2 == 0 ? Color.rgb(255, 255, 255) : Color.rgb(29 ,61 ,99));
+            tileColor = (index % 2 == 0 ? this.boardColor.LIGHT_TILE() : this.boardColor.DARK_TILE());
         } else {
-            tileColor = (index % 2 != 0 ? Color.rgb(255, 255, 255) : Color.rgb(29 ,61 ,99));
+            tileColor = (index % 2 != 0 ? this.boardColor.LIGHT_TILE() : this.boardColor.DARK_TILE());
         }
         this.tilesView[index].setBackgroundColor(tileColor);
         if (this.chessBoard.getTile(index).isTileOccupied()) {
@@ -452,9 +344,9 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                 this.tilesView[coordinate].setBackgroundColor(Color.rgb(204, 0, 0));
             } else {
                 if (BoardUtils.FIRST_ROW.get(coordinate) || BoardUtils.THIRD_ROW.get(coordinate) || BoardUtils.FIFTH_ROW.get(coordinate) || BoardUtils.SEVENTH_ROW.get(coordinate)) {
-                    this.tilesView[coordinate].setBackgroundColor((coordinate % 2 == 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor));
+                    this.tilesView[coordinate].setBackgroundColor((coordinate % 2 == 0 ? this.boardColor.HIGHLIGHT_LEGAL_MOVE_LIGHT_TILE() : this.boardColor.HIGHLIGHT_LEGAL_MOVE_DARK_TILE()));
                 } else {
-                    this.tilesView[coordinate].setBackgroundColor((coordinate % 2 != 0 ? this.legalMovesLightTileColor : this.legalMovesDarkTileColor));
+                    this.tilesView[coordinate].setBackgroundColor((coordinate % 2 != 0 ? this.boardColor.HIGHLIGHT_LEGAL_MOVE_LIGHT_TILE() : this.boardColor.HIGHLIGHT_LEGAL_MOVE_DARK_TILE()));
                 }
             }
         }
@@ -462,88 +354,93 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     private void runAI() {
         final Handler handler2 = new Handler();
-        final MiniMax miniMax = new MiniMax(MainActivity.this.AILevelSpinner.getSelectedItemPosition() + 1);
+        final MiniMax miniMax = new MiniMax(this.AILevel);
         final AtomicBoolean runProgressBar = new AtomicBoolean(true);
         this.AIProgressBar.setVisibility(View.VISIBLE);
         final int MAX = this.chessBoard.currentPlayer().getLegalMoves().size();
         new Thread(() -> {
-            while (runProgressBar.get()) {
+            while (runProgressBar.get() && AIThinking) {
                 handler2.post(() -> this.AIProgressBar.setProgress(100 * miniMax.getMoveCount() / MAX));
+            }
+            if (!AIThinking) {
+                this.AIProgressBar.setVisibility(View.INVISIBLE);
+                this.AIProgressBar.setProgress(0);
             }
         }).start();
         final Handler handler = new Handler();
         new Thread(() -> {
             final Move bestMove = miniMax.execute(MainActivity.this.getChessBoard());
+            this.aiMove = bestMove;
+            this.humanMove = null;
             runProgressBar.lazySet(false);
-            handler.post(() -> {
-                this.updateBoard(bestMove.execute());
-                this.moveLog.addMove(bestMove);
-                this.updateUI(bestMove);
-                this.AIProgressBar.setVisibility(View.INVISIBLE);
-                this.AIProgressBar.setProgress(0);
-            });
+            if (AIThinking) {
+                handler.post(() -> {
+                    this.updateBoard(bestMove.execute());
+                    this.moveLog.addMove(bestMove);
+                    this.updateUI(bestMove);
+                    this.AIProgressBar.setVisibility(View.INVISIBLE);
+                    this.AIProgressBar.setProgress(0);
+                    this.firePropertyChange();
+                    this.AIThinking = false;
+                    this.highlightAIMove();
+                });
+            }
         }).start();
     }
 
-    private int initTileView(final int index, final View view) {
+    private void highlightAIMove() {
+        if(this.aiMove != null && this.showAIMove) {
+            this.tilesView[this.aiMove.getCurrentCoordinate()].setBackgroundColor(Color.rgb(255,192,203));
+            this.tilesView[this.aiMove.getDestinationCoordinate()].setBackgroundColor(Color.rgb(255, 51, 51));
+        }
+    }
+
+    private void highlightHumanMove() {
+        if (this.humanMove != null && this.showHumanMove) {
+            this.tilesView[this.humanMove.getCurrentCoordinate()].setBackgroundColor(Color.rgb(102, 255, 102));
+            this.tilesView[this.humanMove.getDestinationCoordinate()].setBackgroundColor(Color.rgb(50, 205, 50));
+        }
+    }
+
+    public int initTileView(final int index, final View view) {
         view.setOnClickListener(V-> {
             try {
-                if (this.humanMovePiece == null && !this.gameEnded) {
-                    if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
-                        this.inverseBoard();
-                    } else {
-                        this.drawBoard();
-                    }
+                if (this.humanMovePiece == null && !this.gameEnded && !this.AIThinking) {
+                    MainActivity.this.boardOrientation.drawBoard(MainActivity.this);
                     this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
                     if (this.humanMovePiece.getLeague() != this.chessBoard.currentPlayer().getLeague()) {
                         this.humanMovePiece = null;
                     }
-                    this.highlightMove(this.chessBoard);
+                    if (this.showHighlightMove) {
+                        this.highlightMove(this.chessBoard);
+                    }
                 } else if (this.humanMovePiece != null && !this.gameEnded){
                     final Move move = MoveFactory.createMove(this.chessBoard, this.humanMovePiece, this.humanMovePiece.getPiecePosition(), index);
                     final MoveTransition transition = this.chessBoard.currentPlayer().makeMove(move);
                     if (transition.getMoveStatus().isDone()) {
                         this.humanMovePiece = null;
                         this.chessBoard = transition.getLatestBoard();
+                        this.humanMove = move;
+                        this.moveLog.addMove(move);
+                        this.aiMove = null;
                         if (move instanceof PawnPromotion) {
                             ((PawnPromotion)move).setContext(this).startPromotion();
-                        }
-                        this.moveLog.addMove(move);
-                        this.updateUI(move);
-                        if (this.AIThinking && !this.gameEnded) {
-                            this.runAI();
-                        }
-                        if (!this.AIThinking) {
-                            if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
-                                this.inverseBoard();
-                            } else {
-                                this.drawBoard();
-                            }
+                            this.updateUI(move);
+                            this.boardOrientation.drawBoard(this);
+                            this.highlightHumanMove();
+                            this.firePropertyChange();
                         } else {
-                            if (this.whoIsAISpinner.getSelectedItemPosition() == 1) {
-                                this.drawBoard();
-                            } else if (this.whoIsAISpinner.getSelectedItemPosition() == 2){
-                                this.inverseBoard();
-                            }
+                            this.updateUI(move);
+                            this.boardOrientation.drawBoard(this);
+                            this.highlightHumanMove();
+                            this.firePropertyChange();
                         }
                     } else {
-                        final Piece tempPiece = getPiece(this.humanMovePiece, index);
-
-                        if (tempPiece != null) {
-                            if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
-                                this.inverseBoard();
-                            } else {
-                                this.drawBoard();
-                            }
-                            this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
-                            this.highlightMove(this.chessBoard);
-                        } else {
-                            this.humanMovePiece = null;
-                            System.out.println("XXXX");
-                            if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
-                                this.inverseBoard();
-                            } else {
-                                this.drawBoard();
+                        this.humanMovePiece = getPiece(this.humanMovePiece, index);
+                        this.boardOrientation.drawBoard(this);
+                        if (this.humanMovePiece != null) {
+                            if (this.showHighlightMove) {
+                                this.highlightMove(this.chessBoard);
                             }
                         }
                     }
@@ -552,7 +449,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         });
         this.tilesView[index] = (ImageView)view;
         this.drawTile(index);
-        if (this.chessBoard.currentPlayer().getLeague().isBlack()) {
+        if (this.boardOrientation == BoardOrientation.FLIPPED) {
             return index - 1;
         }
         return index + 1;
@@ -567,153 +464,5 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
             return piece;
         }
         return null;
-    }
-
-    private void drawBoard() {
-        int index = this.initTileView(0, this.findViewById(R.id.view00));
-        index = this.initTileView(index, this.findViewById(R.id.view01));
-        index = this.initTileView(index, this.findViewById(R.id.view02));
-        index = this.initTileView(index, this.findViewById(R.id.view03));
-        index = this.initTileView(index, this.findViewById(R.id.view04));
-        index = this.initTileView(index, this.findViewById(R.id.view05));
-        index = this.initTileView(index, this.findViewById(R.id.view06));
-        index = this.initTileView(index, this.findViewById(R.id.view07));
-
-        index = this.initTileView(index, this.findViewById(R.id.view08));
-        index = this.initTileView(index, this.findViewById(R.id.view09));
-        index = this.initTileView(index, this.findViewById(R.id.view10));
-        index = this.initTileView(index, this.findViewById(R.id.view11));
-        index = this.initTileView(index, this.findViewById(R.id.view12));
-        index = this.initTileView(index, this.findViewById(R.id.view13));
-        index = this.initTileView(index, this.findViewById(R.id.view14));
-        index = this.initTileView(index, this.findViewById(R.id.view15));
-
-        index = this.initTileView(index, this.findViewById(R.id.view16));
-        index = this.initTileView(index, this.findViewById(R.id.view17));
-        index = this.initTileView(index, this.findViewById(R.id.view18));
-        index = this.initTileView(index, this.findViewById(R.id.view19));
-        index = this.initTileView(index, this.findViewById(R.id.view20));
-        index = this.initTileView(index, this.findViewById(R.id.view21));
-        index = this.initTileView(index, this.findViewById(R.id.view22));
-        index = this.initTileView(index, this.findViewById(R.id.view23));
-
-        index = this.initTileView(index, this.findViewById(R.id.view24));
-        index = this.initTileView(index, this.findViewById(R.id.view25));
-        index = this.initTileView(index, this.findViewById(R.id.view26));
-        index = this.initTileView(index, this.findViewById(R.id.view27));
-        index = this.initTileView(index, this.findViewById(R.id.view28));
-        index = this.initTileView(index, this.findViewById(R.id.view29));
-        index = this.initTileView(index, this.findViewById(R.id.view30));
-        index = this.initTileView(index, this.findViewById(R.id.view31));
-
-        index = this.initTileView(index, this.findViewById(R.id.view32));
-        index = this.initTileView(index, this.findViewById(R.id.view33));
-        index = this.initTileView(index, this.findViewById(R.id.view34));
-        index = this.initTileView(index, this.findViewById(R.id.view35));
-        index = this.initTileView(index, this.findViewById(R.id.view36));
-        index = this.initTileView(index, this.findViewById(R.id.view37));
-        index = this.initTileView(index, this.findViewById(R.id.view38));
-        index = this.initTileView(index, this.findViewById(R.id.view39));
-
-        index = this.initTileView(index, this.findViewById(R.id.view40));
-        index = this.initTileView(index, this.findViewById(R.id.view41));
-        index = this.initTileView(index, this.findViewById(R.id.view42));
-        index = this.initTileView(index, this.findViewById(R.id.view43));
-        index = this.initTileView(index, this.findViewById(R.id.view44));
-        index = this.initTileView(index, this.findViewById(R.id.view45));
-        index = this.initTileView(index, this.findViewById(R.id.view46));
-        index = this.initTileView(index, this.findViewById(R.id.view47));
-
-        index = this.initTileView(index, this.findViewById(R.id.view48));
-        index = this.initTileView(index, this.findViewById(R.id.view49));
-        index = this.initTileView(index, this.findViewById(R.id.view50));
-        index = this.initTileView(index, this.findViewById(R.id.view51));
-        index = this.initTileView(index, this.findViewById(R.id.view52));
-        index = this.initTileView(index, this.findViewById(R.id.view53));
-        index = this.initTileView(index, this.findViewById(R.id.view54));
-        index = this.initTileView(index, this.findViewById(R.id.view55));
-
-        index = this.initTileView(index, this.findViewById(R.id.view56));
-        index = this.initTileView(index, this.findViewById(R.id.view57));
-        index = this.initTileView(index, this.findViewById(R.id.view58));
-        index = this.initTileView(index, this.findViewById(R.id.view59));
-        index = this.initTileView(index, this.findViewById(R.id.view60));
-        index = this.initTileView(index, this.findViewById(R.id.view61));
-        index = this.initTileView(index, this.findViewById(R.id.view62));
-        this.initTileView(index, this.findViewById(R.id.view63));
-    }
-
-    private void inverseBoard() {
-        int index = this.initTileView(63, this.findViewById(R.id.view00));
-        index = this.initTileView(index, this.findViewById(R.id.view01));
-        index = this.initTileView(index, this.findViewById(R.id.view02));
-        index = this.initTileView(index, this.findViewById(R.id.view03));
-        index = this.initTileView(index, this.findViewById(R.id.view04));
-        index = this.initTileView(index, this.findViewById(R.id.view05));
-        index = this.initTileView(index, this.findViewById(R.id.view06));
-        index = this.initTileView(index, this.findViewById(R.id.view07));
-
-        index = this.initTileView(index, this.findViewById(R.id.view08));
-        index = this.initTileView(index, this.findViewById(R.id.view09));
-        index = this.initTileView(index, this.findViewById(R.id.view10));
-        index = this.initTileView(index, this.findViewById(R.id.view11));
-        index = this.initTileView(index, this.findViewById(R.id.view12));
-        index = this.initTileView(index, this.findViewById(R.id.view13));
-        index = this.initTileView(index, this.findViewById(R.id.view14));
-        index = this.initTileView(index, this.findViewById(R.id.view15));
-
-        index = this.initTileView(index, this.findViewById(R.id.view16));
-        index = this.initTileView(index, this.findViewById(R.id.view17));
-        index = this.initTileView(index, this.findViewById(R.id.view18));
-        index = this.initTileView(index, this.findViewById(R.id.view19));
-        index = this.initTileView(index, this.findViewById(R.id.view20));
-        index = this.initTileView(index, this.findViewById(R.id.view21));
-        index = this.initTileView(index, this.findViewById(R.id.view22));
-        index = this.initTileView(index, this.findViewById(R.id.view23));
-
-        index = this.initTileView(index, this.findViewById(R.id.view24));
-        index = this.initTileView(index, this.findViewById(R.id.view25));
-        index = this.initTileView(index, this.findViewById(R.id.view26));
-        index = this.initTileView(index, this.findViewById(R.id.view27));
-        index = this.initTileView(index, this.findViewById(R.id.view28));
-        index = this.initTileView(index, this.findViewById(R.id.view29));
-        index = this.initTileView(index, this.findViewById(R.id.view30));
-        index = this.initTileView(index, this.findViewById(R.id.view31));
-
-        index = this.initTileView(index, this.findViewById(R.id.view32));
-        index = this.initTileView(index, this.findViewById(R.id.view33));
-        index = this.initTileView(index, this.findViewById(R.id.view34));
-        index = this.initTileView(index, this.findViewById(R.id.view35));
-        index = this.initTileView(index, this.findViewById(R.id.view36));
-        index = this.initTileView(index, this.findViewById(R.id.view37));
-        index = this.initTileView(index, this.findViewById(R.id.view38));
-        index = this.initTileView(index, this.findViewById(R.id.view39));
-
-        index = this.initTileView(index, this.findViewById(R.id.view40));
-        index = this.initTileView(index, this.findViewById(R.id.view41));
-        index = this.initTileView(index, this.findViewById(R.id.view42));
-        index = this.initTileView(index, this.findViewById(R.id.view43));
-        index = this.initTileView(index, this.findViewById(R.id.view44));
-        index = this.initTileView(index, this.findViewById(R.id.view45));
-        index = this.initTileView(index, this.findViewById(R.id.view46));
-        index = this.initTileView(index, this.findViewById(R.id.view47));
-
-        index = this.initTileView(index, this.findViewById(R.id.view48));
-        index = this.initTileView(index, this.findViewById(R.id.view49));
-        index = this.initTileView(index, this.findViewById(R.id.view50));
-        index = this.initTileView(index, this.findViewById(R.id.view51));
-        index = this.initTileView(index, this.findViewById(R.id.view52));
-        index = this.initTileView(index, this.findViewById(R.id.view53));
-        index = this.initTileView(index, this.findViewById(R.id.view54));
-        index = this.initTileView(index, this.findViewById(R.id.view55));
-
-        index = this.initTileView(index, this.findViewById(R.id.view56));
-        index = this.initTileView(index, this.findViewById(R.id.view57));
-        index = this.initTileView(index, this.findViewById(R.id.view58));
-        index = this.initTileView(index, this.findViewById(R.id.view59));
-        index = this.initTileView(index, this.findViewById(R.id.view60));
-        index = this.initTileView(index, this.findViewById(R.id.view61));
-        index = this.initTileView(index, this.findViewById(R.id.view62));
-        this.initTileView(index, this.findViewById(R.id.view63));
     }
 }

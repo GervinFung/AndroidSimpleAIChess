@@ -8,14 +8,24 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/exitGameButton"
+        android:id="@+id/gamePreferences"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Exit Game"
+        android:text="Preferences"
         app:layout_constraintBottom_toTopOf="@+id/boardLayout"
-        app:layout_constraintEnd_toEndOf="@+id/undoMoveButton"
-        app:layout_constraintStart_toStartOf="@+id/undoMoveButton"
-        app:layout_constraintTop_toBottomOf="@+id/undoMoveButton" />
+        app:layout_constraintEnd_toEndOf="@id/gameMenuButton"
+        app:layout_constraintStart_toStartOf="@id/gameMenuButton"
+        app:layout_constraintTop_toBottomOf="@+id/gameMenuButton" />
+
+    <Button
+        android:id="@+id/gameOption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Game Option"
+        app:layout_constraintBottom_toTopOf="@+id/boardLayout"
+        app:layout_constraintEnd_toEndOf="@+id/setupAI"
+        app:layout_constraintStart_toStartOf="@+id/setupAI"
+        app:layout_constraintTop_toBottomOf="@+id/setupAI" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/moveHistory"
@@ -395,62 +405,24 @@
         app:layout_constraintTop_toBottomOf="@+id/boardLayout" />
 
     <Button
-        android:id="@+id/newGameButton"
+        android:id="@+id/gameMenuButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Game"
-        app:layout_constraintBottom_toTopOf="@+id/undoMoveButton"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:text="Game Menu"
+        app:layout_constraintBottom_toTopOf="@+id/gamePreferences"
+        app:layout_constraintEnd_toStartOf="@id/setupAI"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/undoMoveButton"
+        android:id="@+id/setupAI"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Undo Move"
-        app:layout_constraintBottom_toTopOf="@+id/exitGameButton"
-        app:layout_constraintEnd_toEndOf="@+id/newGameButton"
-        app:layout_constraintStart_toStartOf="@+id/newGameButton"
-        app:layout_constraintTop_toBottomOf="@+id/newGameButton" />
-
-    <Button
-        android:id="@+id/saveGameButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Save Game"
-        app:layout_constraintBottom_toBottomOf="@+id/exitGameButton"
-        app:layout_constraintEnd_toStartOf="@+id/undoMoveButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/newGameButton" />
-
-    <Button
-        android:id="@+id/resumeGameButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Load Game"
-        app:layout_constraintBottom_toBottomOf="@+id/exitGameButton"
+        android:text="Setup AI"
+        app:layout_constraintBottom_toTopOf="@+id/gameOption"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/undoMoveButton"
-        app:layout_constraintTop_toTopOf="@+id/newGameButton" />
-
-    <Spinner
-        android:id="@+id/AILevelSpinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="@+id/exitGameButton"
-        app:layout_constraintEnd_toEndOf="@+id/saveGameButton"
-        app:layout_constraintStart_toStartOf="@+id/saveGameButton"
-        app:layout_constraintTop_toBottomOf="@+id/saveGameButton" />
-
-    <Spinner
-        android:id="@+id/whoIsAISpinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="@+id/exitGameButton"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/exitGameButton"
-        app:layout_constraintTop_toTopOf="@+id/exitGameButton" />
+        app:layout_constraintStart_toEndOf="@+id/gameMenuButton"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ProgressBar
         android:id="@+id/AIProgressBar"
