@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public class GameDataUtil {
+public final class GameDataUtil {
 
     private static final String filepath = "chessGame.txt" ;
 

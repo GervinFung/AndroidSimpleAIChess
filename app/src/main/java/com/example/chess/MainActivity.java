@@ -32,6 +32,7 @@ import com.example.chess.gui.BoardOrientation;
 import com.example.chess.gui.CapturedPiece;
 import com.example.chess.gui.GameButton;
 import com.example.chess.gui.MoveHistory;
+import com.example.chess.gui.PawnPromotionUI;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -64,12 +65,16 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
     public MoveLog getMoveLog() { return this.moveLog; }
     public void setBoardColor(final BoardColor boardColor) { this.boardColor = boardColor; }
     public void changeBoardOrientation() { this.boardOrientation = this.boardOrientation.getOpposite(); }
-    public void drawBoard() { this.boardOrientation.drawBoard(this); }
+    public void drawBoard() {
+        this.boardOrientation.drawBoard(this);
+        this.highlightHumanMove();
+        this.highlightAIMove();
+    }
     public void setAILevel(final int AILevel) {
         if (AILevel > 0 && AILevel < 5) {
             this.AILevel = AILevel;
         } else {
-            throw new RuntimeException("AI Level 1 TO 4 only");
+            throw new IllegalArgumentException("AI Level 1 TO 4 only");
         }
     }
     public void firePropertyChange() { this.propertyChangeSupport.firePropertyChange(null, null, null); }
@@ -83,7 +88,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
 
     public void updateBoard(final Board chessBoard) {
         this.chessBoard = chessBoard;
-        this.boardOrientation.drawBoard(this);
+        this.drawBoard();
     }
 
     @Override
@@ -395,7 +400,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         }
     }
 
-    private void highlightHumanMove() {
+    public void highlightHumanMove() {
         if (this.humanMove != null && this.showHumanMove) {
             this.tilesView[this.humanMove.getCurrentCoordinate()].setBackgroundColor(Color.rgb(102, 255, 102));
             this.tilesView[this.humanMove.getDestinationCoordinate()].setBackgroundColor(Color.rgb(50, 205, 50));
@@ -406,7 +411,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
         view.setOnClickListener(V-> {
             try {
                 if (this.humanMovePiece == null && !this.gameEnded && !this.AIThinking) {
-                    MainActivity.this.boardOrientation.drawBoard(MainActivity.this);
+                    this.drawBoard();
                     this.humanMovePiece = this.chessBoard.getTile(index).getPiece();
                     if (this.humanMovePiece.getLeague() != this.chessBoard.currentPlayer().getLeague()) {
                         this.humanMovePiece = null;
@@ -414,7 +419,7 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                     if (this.showHighlightMove) {
                         this.highlightMove(this.chessBoard);
                     }
-                } else if (this.humanMovePiece != null && !this.gameEnded){
+                } else if (this.humanMovePiece != null && !this.gameEnded) {
                     final Move move = MoveFactory.createMove(this.chessBoard, this.humanMovePiece, this.humanMovePiece.getPiecePosition(), index);
                     final MoveTransition transition = this.chessBoard.currentPlayer().makeMove(move);
                     if (transition.getMoveStatus().isDone()) {
@@ -424,20 +429,16 @@ public final class MainActivity extends AppCompatActivity implements Serializabl
                         this.moveLog.addMove(move);
                         this.aiMove = null;
                         if (move instanceof PawnPromotion) {
-                            ((PawnPromotion)move).setContext(this).startPromotion();
-                            this.updateUI(move);
-                            this.boardOrientation.drawBoard(this);
-                            this.highlightHumanMove();
-                            this.firePropertyChange();
+                            new PawnPromotionUI(this).startPromotion((PawnPromotion)move);
                         } else {
                             this.updateUI(move);
-                            this.boardOrientation.drawBoard(this);
+                            this.drawBoard();
                             this.highlightHumanMove();
                             this.firePropertyChange();
                         }
                     } else {
                         this.humanMovePiece = getPiece(this.humanMovePiece, index);
-                        this.boardOrientation.drawBoard(this);
+                        this.drawBoard();
                         if (this.humanMovePiece != null) {
                             if (this.showHighlightMove) {
                                 this.highlightMove(this.chessBoard);

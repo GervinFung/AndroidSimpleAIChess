@@ -1,20 +1,12 @@
 package com.example.chess.engine.board;
 
-import android.app.Dialog;
-import android.content.Context;
-import android.widget.ImageView;
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 
-import com.example.chess.MainActivity;
-import com.example.chess.R;
 import com.example.chess.engine.pieces.Pawn;
 import com.example.chess.engine.pieces.Piece;
 import com.example.chess.engine.pieces.Rook;
 
 import java.io.Serializable;
-import java.util.List;
 
 import static com.example.chess.engine.board.Board.*;
 
@@ -244,7 +236,6 @@ public abstract class Move implements Serializable {
         private final Move decoratedMove;
         private final Pawn promotedPawn;
         private Piece promotedPiece;
-        private Context mainActivity;
         private final Piece MinimaxPromotionPiece;
 
         public PawnPromotion(final Move decoratedMove, final Piece MinimaxPromotionPiece) {
@@ -254,32 +245,11 @@ public abstract class Move implements Serializable {
             this.MinimaxPromotionPiece = MinimaxPromotionPiece;
         }
 
-        public PawnPromotion setContext(final Context mainActivity) {
-            this.mainActivity = mainActivity;
-            return this;
-        }
+        public void setPromotedPiece(final Piece promotedPiece) { this.promotedPiece = promotedPiece; }
 
+        public Pawn getPromotedPawn() { return this.promotedPawn; }
+        public Piece getPromotedPiece() { return this.promotedPiece; }
         public Move getDecoratedMove() { return this.decoratedMove; }
-
-        private Board promotePawn(final Board board) {
-            final Builder builder = new Builder(this.board.getMoveCount(), board.currentPlayer().getLeague(), null);
-
-            //TODO -CHECK HERE
-
-            for (final Piece piece : this.board.currentPlayer().getActivePieces()) {
-                if (!this.promotedPawn.equals(piece)) {
-                    builder.setPiece(piece);
-                }
-            }
-
-            for (final Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
-                builder.setPiece(piece);
-            }
-
-            builder.setPiece(this.promotedPiece.movedPiece(this));
-            //promotion take a move, which the move flips player turn after executed, so this should not flip again
-            return builder.build();
-        }
 
         @Override
         public Board execute() {
@@ -302,43 +272,6 @@ public abstract class Move implements Serializable {
             builder.setTransitionMove(this);
 
             return builder.build();
-        }
-
-        private int[] pawnPromotionInterface(final List<Piece> getPromotionPieces) {
-            final int[] icons = new int[4];
-            for (int i = 0; i < 4; i++) {
-                icons[i] = BoardUtils.getPieceImage(getPromotionPieces.get(i));
-            }
-            return icons;
-        }
-
-        private void getImageViewOfPromotePiece(final Piece promotedPiece, final Dialog dialog, final int iconsResource, final int resource) {
-            final ImageView pieceImageView = dialog.findViewById(resource);
-            pieceImageView.setImageResource(iconsResource);
-            pieceImageView.setOnClickListener(V->{
-                this.promotedPiece = promotedPiece;
-                final MainActivity gameActivity = ((MainActivity)this.mainActivity);
-                gameActivity.updateBoard(this.promotePawn(gameActivity.getChessBoard()));
-                dialog.cancel();
-            });
-            pieceImageView.setEnabled(true);
-        }
-
-        public void startPromotion() {
-            final List<Piece> getPromotionPieces = this.promotedPawn.getPromotionPieces(this.destinationCoordinate);
-            final int[] iconsResource = pawnPromotionInterface(getPromotionPieces);
-
-            final Dialog dialog = new Dialog(this.mainActivity);
-            dialog.setContentView(R.layout.pawn_promotion);
-            dialog.setCancelable(false);
-
-            this.getImageViewOfPromotePiece(getPromotionPieces.get(0), dialog, iconsResource[0], R.id.queen);
-            this.getImageViewOfPromotePiece(getPromotionPieces.get(1), dialog, iconsResource[1], R.id.rook);
-            this.getImageViewOfPromotePiece(getPromotionPieces.get(2), dialog, iconsResource[2], R.id.bishop);
-            this.getImageViewOfPromotePiece(getPromotionPieces.get(3), dialog, iconsResource[3], R.id.knight);
-
-            dialog.show();
-            Toast.makeText(this.mainActivity, "You MUST promote your pawn!", Toast.LENGTH_LONG).show();
         }
 
         @Override
